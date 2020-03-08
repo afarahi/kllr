@@ -3,69 +3,46 @@ Kernel Localized Linear Regression (KLLR) method.
 
 Introduction:
 -------------
-....
+
+Linear regression of the simple least-squares variety has been a canonical method used to characterize
+the relation between two variables, but its utility is limited by the fact that it reduces full
+population statistics down to three numbers: a slope, normalization and variance/standard deviation.
+With large empirical or simulated samples we can perform a more sensitive analysis
+using a localized linear regression method (see, Farahi et al. 2018 and Anbajagane et al. 2020).
+The KLLR method generates estimates of conditional statistics in terms of the local the slope, normalization,
+and covariance. Such a method provides a more nuanced description of population statistics appropriate
+for the very large samples with non-linear trends.
+
+This code is an implementation of the Kernel Localized Linear Regression (KLLR) method
+that performs a localized Linear regression described in Farahi et al. (2018). It employs
+bootstrap re-sampling technique to estimate the uncertainties. We also provide a set of visualization
+tools so practitioners can seamlessly generate visualization of the model parameters.
 
 
 Quickstart:
 -----------
-To start using TATTER, simply use "from tatter import two_sample_test" to
-access the primary function. The exact requirements for the inputs are
-listed in the docstring of the two_sample_test() function further below.
-An example for using TATTER looks like this:
+To start using KLLR, simply use "from KLLR import kllr_model" to
+access the primary functions and class. The exact requirements for the inputs are
+listed in the docstring of the kllr_model() class further below.
+An example for using KLLR looks like this:
 
-    ------------------------------------------------------------
-    |  from tatter import two_sample_test                      |
-    |                                                          |
-    |  test_value, test_null, p_value =                        |
-    |           two_sample_test(X, Y,                          |
-    |                           model='MMD',                   |
-    |                           iterations=1000,               |
-    |                           kernel_function='rbf',         |
-    |                           gamma=gamma,                   |
-    |                           n_jobs=4,                      |
-    |                           verbose=True,                  |
-    |                           random_state=0)                |
-    |                                                          |
-    ------------------------------------------------------------
+    ------------------------------------------------------------------------
+    |                                                                      |
+    |    from kllr import kllr_model                                       |
+    |                                                                      |
+    |    lm = kllr_model()                                                 |
+    |    xrange, yrange_mean, intercept, slope, scatter =                  |
+    |             lm.fit(x, y, [0.0, 1.0], nbins=11, GaussianWidth=0.2)    |
+    |                                                                      |
+    ------------------------------------------------------------------------
 
 """
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy import stats
 from sklearn import linear_model, mixture
-
-'''
-Plotting Params
-'''
-import matplotlib as mpl
-mpl.rcParams['xtick.direction'], mpl.rcParams['ytick.direction'] = 'in', 'in'
-mpl.rcParams['xtick.major.size'], mpl.rcParams['xtick.minor.size'] = 14, 8
-mpl.rcParams['xtick.major.width'], mpl.rcParams['xtick.minor.width'] = 1.2, 0.8
-mpl.rcParams['xtick.major.pad'], mpl.rcParams['xtick.minor.pad'] = 10, 10
-mpl.rcParams['ytick.major.size'], mpl.rcParams['ytick.minor.size'] = 14, 8
-mpl.rcParams['ytick.major.width'], mpl.rcParams['ytick.minor.width'] = 1.2, 0.8
-
-'''
-Initiate Dataset:
-    All variables can be accesses and modified as seen fit by user.
-    eg. Class.fontsize.xlabel = 0
-    eg. Class.Colors = ['red', 'blue', 'aqua']
-'''
-
-#Dictionary that allows user to change fontsize of plots whenever necessary
-fontsize = pd.Series({
-                'title': 25,
-                'legend': 18,
-                'xlabel': 25,
-                'ylabel': 25
-                })
-
-#List of colors. First color used by default, but rest used when splitting results by a 3rd variable
-Colors = ['#FF7F0E', 'mediumseagreen', 'mediumpurple', 'steelblue']
-
 
 def scatter_cal(x, y, slope, intercept, dof=None, weight=None):
     """
