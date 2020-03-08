@@ -22,7 +22,7 @@ tools so practitioners can seamlessly generate visualization of the model parame
 
 ## Dependencies
 
-`numpy`, `scipy`  `matplotlib`, `pandas`, `sklearn`, `tqdm`
+`numpy`, `scipy`,  `matplotlib`, `pandas`, `sklearn`, `tqdm`
 
 ## References
 
@@ -36,10 +36,10 @@ tools so practitioners can seamlessly generate visualization of the model parame
 
 ## Quickstart
 
-To start using KLLR, simply use `from kllr import regression` to
-access the primary function. The exact requirements for the inputs are
-listed in the docstring of the regression() function further below.
-An example for using TATTER looks like this:
+To start using KLLR, simply use `from KLLR import kllr_model` to
+access the primary functions and class. The exact requirements for the inputs are
+listed in the docstring of the kllr_model() class further below.
+An example for using KLLR looks like this:
 
       from kllr import kllr_model
        
