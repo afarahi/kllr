@@ -119,7 +119,7 @@ This Output_Data dict will be returned by the function at the end.
 '''
 
 
-def Plot_Fit(df, xlabel, ylabel, show_data = False, cutoff = 13.5, GaussianWidth = 0.2, labels = [], ax=None):
+def Plot_Fit(df, xlabel, ylabel, show_data = False, cutoff = 13.5, GaussianWidth = 0.2, labels = [], ax=None, range = None):
 
     lm = kllr_model()
 
