@@ -149,7 +149,7 @@ def Plot_Fit(df, xlabel, ylabel, xrange = [], show_data = False, GaussianWidth =
 
     x_data, y_data = x_data[Mask], y_data[Mask]
 
-    x, y = lm.fit(x_data, y_data, xrange = range,
+    x, y = lm.fit(x_data, y_data, xrange = xrange,
                   nbins = sampling_size, GaussianWidth = GaussianWidth)[0:2]
 
     # Add black line around regular line to improve visibility
@@ -244,7 +244,7 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], xrange = []
 
         # Run LLR using JUST the subset
         x, y = lm.fit(x_data[split_Mask], y_data[split_Mask],
-                      xrange = range, GaussianWidth = GaussianWidth)[0:2]
+                      xrange = xrange, GaussianWidth = GaussianWidth)[0:2]
 
         # Format label depending on Data or Residuals mode
         if mode == 'Data':
@@ -337,7 +337,7 @@ def Plot_Fit_Params(df, xlabel, ylabel, xrange = [], nBootstrap = 100, GaussianW
         # xline is always the same regardless of bootstrap so don't need 2D array for it.
         # yline is not needed for plotting in this module so it's a 'dummy' variable
         xline, yline, intercept[iBoot, :], slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy,
-                                                                                       xrange = range,
+                                                                                       xrange = xrange,
                                                                                        nbins  = sampling_size,
                                                                                        GaussianWidth = GaussianWidth)
 
@@ -450,7 +450,7 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], mode
 
             xline, yline, intercept[iBoot, :], \
                slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy,
-                                                           xrange = range,
+                                                           xrange = xrange,
                                                            nbins = sampling_size,
                                                            GaussianWidth = GaussianWidth)
 
