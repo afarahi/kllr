@@ -118,9 +118,7 @@ are the computed properties themselves. Any data shown in plots will, and should
 This Output_Data dict will be returned by the function at the end.
 '''
 
-#Add temp line to test if this shows up in commit
-
-def Plot_Fit(df, xlabel, ylabel, show_data = False, cutoff = 13.5, GaussianWidth = 0.2, labels = [], ax=None, range = None):
+def Plot_Fit(df, xlabel, ylabel, xrange = [], show_data = False, GaussianWidth = 0.2, labels = [], ax=None):
 
     lm = kllr_model()
 
@@ -144,11 +142,14 @@ def Plot_Fit(df, xlabel, ylabel, show_data = False, cutoff = 13.5, GaussianWidth
 
     x_data, y_data = np.array(df[xlabel]), np.array(df[ylabel])
 
-    Mask = (x_data > cutoff - 0.5) & np.invert(np.isinf(y_data))
+    if len(xrange) < 2:
+        xrange = [np.min(x_data), np.max(x_data)]
+
+    Mask = (x_data > xrange[0]) & (x_data < xrange[1]) & np.invert(np.isinf(y_data))
 
     x_data, y_data = x_data[Mask], y_data[Mask]
 
-    x, y = lm.fit(x_data, y_data, xrange = (cutoff, np.sort(x_data)[-20]),
+    x, y = lm.fit(x_data, y_data, xrange = range,
                   nbins = sampling_size, GaussianWidth = GaussianWidth)[0:2]
 
     # Add black line around regular line to improve visibility
@@ -187,8 +188,8 @@ def Plot_Fit(df, xlabel, ylabel, show_data = False, cutoff = 13.5, GaussianWidth
 
     return Output_Data, ax
 
-def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], show_data = False,
-                   mode = 'Data', GaussianWidth = 0.2, cutoff = 13.5, labels = [], ax=None):
+def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], xrange = [], show_data = False,
+                   mode = 'Data', GaussianWidth = 0.2, labels = [], ax=None):
 
     lm = kllr_model()
 
@@ -211,7 +212,10 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], show_data =
 
     x_data, y_data, split_data = np.array(df[xlabel]), np.array(df[ylabel]), np.array(df[split_label])
 
-    Mask = (x_data > cutoff) & np.invert(np.isinf(y_data)) & np.invert(np.isinf(split_data))
+    if len(xrange) < 2:
+        xrange = [np.min(x_data), np.max(x_data)]
+
+    Mask = (x_data > xrange[0]) & (x_data < xrange[1]) & np.invert(np.isinf(y_data)) & np.invert(np.isinf(split_data))
 
     x_data, y_data, split_data = x_data[Mask], y_data[Mask], split_data[Mask]
 
@@ -240,7 +244,7 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], show_data =
 
         # Run LLR using JUST the subset
         x, y = lm.fit(x_data[split_Mask], y_data[split_Mask],
-                      (cutoff, np.sort(x_data[split_Mask])[-20]), GaussianWidth = GaussianWidth)[0:2]
+                      xrange = range, GaussianWidth = GaussianWidth)[0:2]
 
         # Format label depending on Data or Residuals mode
         if mode == 'Data':
@@ -259,7 +263,7 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], show_data =
         if show_data:
 
             # Select only data above our cutoff
-            Mask = x_data > cutoff
+            Mask = (x_data > xrange[0]) & (x_data < xrange[1])
 
             # Only display data above our cutoff and of halos within the bins in split_data
             plt.scatter(10**x_data[Mask & split_Mask], 10**y_data[Mask & split_Mask],
@@ -272,7 +276,7 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], show_data =
     return Output_Data, ax
 
 
-def Plot_Fit_Params(df, xlabel, ylabel, cutoff = 13.5, nBootstrap = 100, GaussianWidth = 0.2,
+def Plot_Fit_Params(df, xlabel, ylabel, xrange = [], nBootstrap = 100, GaussianWidth = 0.2,
                     percentile = [16., 84.], labels = [], verbose=True, ax=None):
 
     lm = kllr_model()
@@ -303,13 +307,16 @@ def Plot_Fit_Params(df, xlabel, ylabel, cutoff = 13.5, nBootstrap = 100, Gaussia
     # Load and mask data
     x_data, y_data = np.array(df[xlabel]), np.array(df[ylabel])
 
-    Mask = (x_data > cutoff - 0.5) & np.invert(np.isinf(y_data))
+    if len(xrange) < 2:
+        xrange = [np.min(x_data), np.max(x_data)]
+
+    Mask = (x_data > xrange[0]) & (x_data < xrange[1]) & np.invert(np.isinf(y_data))
 
     x_data, y_data = x_data[Mask], y_data[Mask]
 
     # Generate new arrays to store params in for each Bootstrap realization
-    scatter = np.empty([nBootstrap, sampling_size])
-    slope = np.empty([nBootstrap, sampling_size])
+    scatter   = np.empty([nBootstrap, sampling_size])
+    slope     = np.empty([nBootstrap, sampling_size])
     intercept = np.empty([nBootstrap, sampling_size])
 
     if verbose:
@@ -330,8 +337,9 @@ def Plot_Fit_Params(df, xlabel, ylabel, cutoff = 13.5, nBootstrap = 100, Gaussia
         # xline is always the same regardless of bootstrap so don't need 2D array for it.
         # yline is not needed for plotting in this module so it's a 'dummy' variable
         xline, yline, intercept[iBoot, :], slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy,
-                                                                                       (cutoff, np.sort(x_data)[-20]),
-                                                                                       sampling_size, GaussianWidth = GaussianWidth)
+                                                                                       xrange = range,
+                                                                                       nbins  = sampling_size,
+                                                                                       GaussianWidth = GaussianWidth)
 
     ax[0].plot(10**xline, np.mean(slope, axis=0), lw=3, color = Colors[0])
     ax[0].fill_between(10**xline, np.percentile(slope, 16, axis=0), np.percentile(slope, 84, axis=0),
@@ -361,7 +369,7 @@ def Plot_Fit_Params(df, xlabel, ylabel, cutoff = 13.5, nBootstrap = 100, Gaussia
 
 
 def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], mode = 'Data',
-                          cutoff = 13.5, nBootstrap = 100, GaussianWidth = 0.2,
+                          xrange = [], nBootstrap = 100, GaussianWidth = 0.2,
                           percentile = [16., 84.], labels = [], verbose=True, ax=None):
 
     lm = kllr_model()
@@ -389,7 +397,10 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], mode
     # Load data and mask it
     x_data, y_data, split_data = np.array(df[xlabel]), np.array(df[ylabel]), np.array(df[split_label])
 
-    Mask = (x_data > cutoff) & np.invert(np.isinf(y_data)) & np.invert(np.isinf(split_data))
+    if len(xrange) < 2:
+        xrange = [np.min(x_data), np.max(x_data)]
+
+    Mask = (x_data > xrange[0]) & (x_data < xrange[1]) & np.invert(np.isinf(y_data)) & np.invert(np.isinf(split_data))
 
     x_data, y_data, split_data = x_data[Mask], y_data[Mask], split_data[Mask]
 
@@ -418,8 +429,8 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], mode
         elif mode == 'Residuals':
             split_Mask = (split_res <= split_bins[i + 1]) & (split_res > split_bins[i])
 
-        scatter = np.empty([nBootstrap, sampling_size])
-        slope = np.empty([nBootstrap, sampling_size])
+        scatter   = np.empty([nBootstrap, sampling_size])
+        slope     = np.empty([nBootstrap, sampling_size])
         intercept = np.empty([nBootstrap, sampling_size])
 
         if verbose:
@@ -439,7 +450,7 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], mode
 
             xline, yline, intercept[iBoot, :], \
                slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy,
-                                                           xrange = (cutoff, np.sort(x_data[split_Mask])[-20]),
+                                                           xrange = range,
                                                            nbins = sampling_size,
                                                            GaussianWidth = GaussianWidth)
 
