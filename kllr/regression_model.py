@@ -283,7 +283,7 @@ class kllr_model():
         intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)
         dz = data_z - slope * data_x - intercept
 
-        sig = np.cov(dy, dz, aweights=weight)
+        sig = np.cov(dy, dz, aweight = weight)
 
         return sig[1,0] / np.sqrt(sig[0,0]*sig[1, 1])
 
@@ -319,13 +319,13 @@ class kllr_model():
 
         weight = calculate_weigth(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
 
-        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)
+        intercept, slope, sig = self.linear_regression(data_x, data_y, weight = weight)
         dy = data_y - slope * data_x - intercept
 
-        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)
+        intercept, slope, sig = self.linear_regression(data_x, data_z, weight = weight)
         dz = data_z - slope * data_x - intercept
 
-        sig = np.cov(dy, dz, aweights=weight)
+        sig = np.cov(dy, dz, aweights = weight)
 
         return sig[1,0]
 
