@@ -1110,3 +1110,4 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins = [], split_
     plt.legend(fontsize = fontsize.legend)
 
     return Output_Data, ax
+
