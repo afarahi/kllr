@@ -245,23 +245,23 @@ class kllr_model():
         resample = np.floor(np.random.rand(l) * int(len(x))).astype(int)
         return x[resample], resample
 
-    def calc_correlation_fixed_x(self, x, y, z, weight=None):
+    def calc_correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None):
         """
         computes the correlation between two variables y and z at fixed x.
 
         Parameters
         ----------
-        x : numpy array
-            the vector of independent variable
+        data_x : numpy array
+            the data vector of independent variable
 
-        y : numpy array
-            the vector of dependent variable
+        data_y : numpy array
+            the data vector of dependent variable
 
-        z : numpy array
-            the vector of dependent variable
+        data_z : numpy array
+            the data vector of dependent variable
 
-        weight : float
-            the weight vector
+        x : float
+            value of the conditional parameter
 
         Returns
         -------
@@ -269,37 +269,41 @@ class kllr_model():
              correlation coefficient
         """
 
-        intercept, slope, sig = self.linear_regression(x, y, weight=weight)
-        dy = y - slope * x - intercept
+        if kernel_type is not None:
+            self.kernel_type = kernel_type
 
-        intercept, slope, sig = self.linear_regression(x, z, weight=weight)
-        dz = z - slope * x - intercept
+        if kernel_width is not None:
+            self.kernel_width = kernel_width
 
-        if weight is None:
-            sig = np.cov(dy, dz)
-        else:
-            sig = np.cov(dy, dz, aweights=weight)
+        weight = calculate_weigth(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
+
+        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)
+        dy = data_y - slope * data_x - intercept
+
+        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)
+        dz = data_z - slope * data_x - intercept
+
+        sig = np.cov(dy, dz, aweights=weight)
 
         return sig[1,0] / np.sqrt(sig[0,0]*sig[1, 1])
 
-    def calc_covariance_fixed_x(self, x, y, z, weight = None):
+    def calc_covariance_fixed_x(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None):
         """
         computes the covariance between two variables y and z at fixed x.
 
-
         Parameters
         ----------
-        x : numpy array
-            the vector of independent variable
+        data_x : numpy array
+            the data vector of independent variable
 
-        y : numpy array
-            the vector of dependent variable
+        data_y : numpy array
+            the data vector of dependent variable
 
-        z : numpy array
-            the vector of dependent variable
+        data_z : numpy array
+            the data vector of dependent variable
 
-        weight : float
-            the weight vector
+        x : float
+            value of the conditional parameter
 
         Returns
         -------
@@ -307,16 +311,21 @@ class kllr_model():
              covariance
         """
 
-        intercept, slope, sig = self.linear_regression(x, y, weight=weight)
-        dy = y - slope * x - intercept
+        if kernel_type is not None:
+            self.kernel_type = kernel_type
 
-        intercept, slope, sig = self.linear_regression(x, z, weight=weight)
-        dz = z - slope * x - intercept
+        if kernel_width is not None:
+            self.kernel_width = kernel_width
 
-        if weight is None:
-            sig = np.cov(dy, dz)
-        else:
-            sig = np.cov(dy, dz, aweights=weight)
+        weight = calculate_weigth(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
+
+        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)
+        dy = data_y - slope * data_x - intercept
+
+        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)
+        dz = data_z - slope * data_x - intercept
+
+        sig = np.cov(dy, dz, aweights=weight)
 
         return sig[1,0]
 
