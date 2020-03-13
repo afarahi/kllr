@@ -19,6 +19,11 @@ that performs a localized Linear regression described in Farahi et al. (2018). I
 bootstrap re-sampling technique to estimate the uncertainties. We also provide a set of visualization
 tools so practitioners can seamlessly generate visualization of the model parameters.
 
+If you use KLLR or derivates based on it, please cite the following papers which introduced the tool:
+
+[Localized massive halo properties in BAHAMAS and MACSIS simulations: scalings, lognormality, and covariance](https://academic.oup.com/mnras/article-abstract/478/2/2618/4993329)
+
+[Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes](https://arxiv.org/abs/2001.02283)
 
 ## Dependencies
 

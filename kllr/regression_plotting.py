@@ -114,11 +114,16 @@ Outputs:
 Every function contains an Output_Data dictionary whose keys are the data vector names (eg. x, y, slope, scatter), and the values
 are the computed properties themselves. Any data shown in plots will, and should, be stored in the Output_data dict.
 This Output_Data dict will be returned by the function at the end.
+
+
+## TODO: take care of cutoff
+## give an error : data, ax = Plot_Fit_Split(df, 'M200', 'MStar_BCG100', 'z_form', split_bins=3, split_mode='Residuals') 
 '''
 
-def Plot_Fit(df, xlabel, ylabel, xrange = [], show_data = False, sampling_size = 25, GaussianWidth = 0.2, labels = [], ax=None):
+def Plot_Fit(df, xlabel, ylabel, cutoff = 13.5, xrange = None, show_data = False, sampling_size = 25,
+             kernel_type = 'gaussian', kernel_width = 0.2, labels = [], ax=None):
 
-    lm = kllr_model()
+    lm = kllr_model(kernel_type, kernel_width)
 
     if ax == None:
         ax = plt.figure(figsize=(12, 8))
@@ -140,15 +145,11 @@ def Plot_Fit(df, xlabel, ylabel, xrange = [], show_data = False, sampling_size =
 
     x_data, y_data = np.array(df[xlabel]), np.array(df[ylabel])
 
-    if len(xrange) < 2:
-        xrange = [np.min(x_data), np.max(x_data)]
-
     Mask = np.invert(np.isinf(x_data)) & np.invert(np.isinf(y_data))
 
     x_data, y_data = x_data[Mask], y_data[Mask]
 
-    x, y = lm.fit(x_data, y_data, xrange = xrange,
-                  nbins = sampling_size, GaussianWidth = GaussianWidth)[0:2]
+    x, y = lm.fit(x_data, y_data, xrange = xrange, nbins = sampling_size)[0:2]
 
     # Add black line around regular line to improve visibility
     plt.plot(10**x, 10**y, lw = 6, c = 'k', label = "")
@@ -187,10 +188,11 @@ def Plot_Fit(df, xlabel, ylabel, xrange = [], show_data = False, sampling_size =
     return Output_Data, ax
 
 
-def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], xrange = [], show_data = False,
-                   split_mode = 'Data', sampling_size = 25, GaussianWidth = 0.2, labels = [], ax=None):
+def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], xrange = None, show_data = False,
+                   split_mode = 'Data', sampling_size = 25, kernel_type = 'gaussian', kernel_width = 0.2,
+                   labels = [], ax=None):
 
-    lm = kllr_model()
+    lm = kllr_model(kernel_type, kernel_width)
 
     plt.rc('xtick', labelsize=22)
     plt.rc('ytick', labelsize=22)
@@ -211,9 +213,6 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], xrange = []
 
     x_data, y_data, split_data = np.array(df[xlabel]), np.array(df[ylabel]), np.array(df[split_label])
 
-    if len(xrange) < 2:
-        xrange = [np.min(x_data), np.max(x_data)]
-
     Mask = np.invert(np.isinf(x_data)) & np.invert(np.isinf(y_data)) & np.invert(np.isinf(split_data))
 
     x_data, y_data, split_data = x_data[Mask], y_data[Mask], split_data[Mask]
@@ -223,10 +222,10 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], xrange = []
         if split_mode == 'Data':
             split_bins = [np.percentile(split_data, float(i/split_bins)*100) for i in range(0, split_bins + 1)]
         elif split_mode == 'Residuals':
-            split_res  = lm.calculate_residual(x_data, split_data, (cutoff, 16), GaussianWidth = GaussianWidth)
+            split_res = lm.calculate_residual(x_data, split_data, (cutoff, 16))
             split_bins = [np.percentile(split_res, float(i/split_bins)*100) for i in range(0, split_bins + 1)]
     elif isinstance(split_bins, (np.ndarray, list, tuple)) & (split_mode == 'Residuals'):
-        split_res  = lm.calculate_residual(x_data, split_data, (cutoff, 16), GaussianWidth = GaussianWidth)
+        split_res = lm.calculate_residual(x_data, split_data, (cutoff, 16))
 
     # Define dictionary that will contain values that are being plotted
     # First define it to be a dict of dicts whose first level keys are split_bin number
@@ -242,8 +241,7 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], xrange = []
             split_Mask = (split_res < split_bins[i + 1]) & (split_res > split_bins[i])
 
         # Run LLR using JUST the subset
-        x, y = lm.fit(x_data[split_Mask], y_data[split_Mask],
-                      xrange = xrange, GaussianWidth = GaussianWidth)[0:2]
+        x, y = lm.fit(x_data[split_Mask], y_data[split_Mask], xrange = xrange)[0:2]
 
         # Format label depending on Data or Residuals mode
         if split_mode == 'Data':
