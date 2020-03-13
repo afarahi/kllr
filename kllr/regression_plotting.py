@@ -117,7 +117,7 @@ This Output_Data dict will be returned by the function at the end.
 ## give an error : data, ax = Plot_Fit_Split(df, 'M200', 'MStar_BCG100', 'z_form', split_bins=3, split_mode='Residuals')
 '''
 
-def Plot_Fit(df, xlabel, ylabel, cutoff = 13.5, xrange = None, show_data = False, sampling_size = 25,
+def Plot_Fit(df, xlabel, ylabel, xrange = None, show_data = False, sampling_size = 25,
              kernel_type = 'gaussian', kernel_width = 0.2, labels = [], ax=None):
 
     lm = kllr_model(kernel_type, kernel_width)
