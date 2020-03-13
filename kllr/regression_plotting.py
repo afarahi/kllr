@@ -52,56 +52,61 @@ Disclaimer:
       We split the data into bins in split_variable, where each bin contains an equal number of halos.
       So including the halos below our cutoff will change how our bin-edges are determined and thus affect our results.
 
---------------------------------------
-Parameters shared by all functions (for Arya's use):
---------------------------------------
+Parameters
+-------------
 
-df:
+df : pandas dataframe
     DataFrame containing all properties
 
-xlabel, ylabel, (zlabel):
-    labels of data vectors of interest in df. In case of matrix functions, we pass a list of labels into the "ylabels" parameter.
+xlabel, ylabel, (zlabel) : strings
+    labels of the data vectors of interest in the dataframe.
+    In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
 
-show_data:
-    Used in Plot_Fit function to show the datapoints used to make the LLR fit
+show_data : boolean
+    Used in Plot_Fit function to show the datapoints used to make the LLR fit.
+    Is set to show_data = False, by default
 
-xrange:
-    A 2-element list that sets the range of x-values for which we compute and plot parameters.
-    By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as the xrange values.
+xrange : list, tuple, np.array
+    A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
+    By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
 
-nBootstrap:
-    Sets how many bootstrap realizations are made when determining statistical error in parameters
+nBootstrap : int
+    Sets how many bootstrap realizations are made when determining statistical error in parameters.
 
-percentile:
-    List whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
-    Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value for the param
+percentile : list, tuple, np.array
+    List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
+    Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
 
-split_label:
-    Label of the data vector used to split the data
+split_label : string
+    Label of the data vector used to split the data, or condition the data, on a secondary variable.
 
-split_bins:
-    Either number of bins (int), or array of bin_edges. If a number is provided the modules will determine the
-    bin_edges themselves using the data vector. By default, edges are set so there are equal number of data points in each bin.
+split_bins : int, list, tuple, numpy array
+    Can be either number of bins (int), or array of bin_edges.
 
-split_mode:
-    Sets how the data is split based on the split variable
+    If an int is provided the modules will determine the bin edges themselves using the data vector.
+    By default, edges are set so there are equal number of data points in each bin.
+    Note that the bin edges in this case will be determed using all data passed into the function. However,
+    the plotting and computations will be done only using data with x-values within the bounds set by the xrange parameter.
+
+    If a list is provided then the list elements serve as the bin edges
+
+split_mode : string
+    Sets how the data is split/conditioned based on the split variable
     If 'Data', then all halos are binned based on the variable df[split_label]
     If 'Residuals', then we fit split_label vs. xlabel, then split the data into bins based on the residual values
 
-labels:
+labels : list of strings
     Allows for user-defined labels for x-axis, y-axis, legend labels.
-    Currently some modules let you change the actual x/y labels.
-    Others only allow you to input what the property is called. Eg. xlabel -> M_{200c}
 
-nbins:
+nbins : int
     Available when plotting PDF. Sets the number of the bins the PDF is split into. Can also input an array, in which
     case it will be read as the edges of the bins.
 
-funcs:
+funcs : dictionary
     Available when plotting PDF. A dictionary of format {key: function}, where the function will be run on all the residuals in
     every bootstrap realization. Results for median values and 1sigma bounds will be printed and stored in the Output_Data array
 
-verbose:
+verbose : boolean
     controls the verbosity of the model's output.
 
 ----------
