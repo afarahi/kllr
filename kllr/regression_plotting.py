@@ -65,9 +65,9 @@ xlabel, ylabel, (zlabel):
 show_data:
     Used in Plot_Fit function to show the datapoints used to make the LLR fit
 
-cutoff:
-    Determines cutoff in x-values. Will use whole inputted dataset to make calculations (unless doing a split case)
-    but then will only plot parametes for halos with x-value > cutoff
+xrange:
+    A 2-element list that sets the range of x-values for which we compute and plot parameters.
+    By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as the xrange values.
 
 nBootstrap:
     Sets how many bootstrap realizations are made when determining statistical error in parameters
@@ -97,9 +97,6 @@ nbins:
     Available when plotting PDF. Sets the number of the bins the PDF is split into. Can also input an array, in which
     case it will be read as the edges of the bins.
 
-upperlim:
-    Available when plotting PDF. Along with use of 'cutoff', it helps construct PDF of residuals in any width bin of x-values
-
 funcs:
     Available when plotting PDF. A dictionary of format {key: function}, where the function will be run on all the residuals in
     every bootstrap realization. Results for median values and 1sigma bounds will be printed and stored in the Output_Data array
@@ -116,13 +113,13 @@ are the computed properties themselves. Any data shown in plots will, and should
 This Output_Data dict will be returned by the function at the end.
 
 
-## TODO: 
+## TODO:
     * take care of cutoff
-    * give an error : data, ax = Plot_Fit_Split(df, 'M200', 'MStar_BCG100', 'z_form', split_bins=3, split_mode='Residuals') 
+    * give an error : data, ax = Plot_Fit_Split(df, 'M200', 'MStar_BCG100', 'z_form', split_bins=3, split_mode='Residuals')
 '''
 
 
-def Plot_Fit(df, xlabel, ylabel, cutoff = 13.5, xrange = None, show_data = False, sampling_size = 25,
+def Plot_Fit(df, xlabel, ylabel, xrange = None, show_data = False, sampling_size = 25,
              kernel_type = 'gaussian', kernel_width = 0.2, labels = [], ax=None):
 
     lm = kllr_model(kernel_type, kernel_width)
@@ -690,21 +687,32 @@ def Plot_Cov_Corr_Split(df, xlabel, ylabel, zlabel, split_label, split_bins = []
 
 
 def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, xrange = [], nBootstrap = 100, Output_mode = 'Covariance',
-                            sampling_size = 25, GaussianWidth = 0.2, percentile = [16., 84.],
-                            labels = [], verbose=True, ax = None):
+                         sampling_size = 25, GaussianWidth = 0.2, percentile = [16., 84.],
+                         labels = [], verbose=True, ax = None):
 
     lm = kllr_model()
 
     # size of matrix
     if Output_mode.lower() in ['covariance', 'cov']:
+
+        #'length' of matrix is same as number of properties
         matrix_size = len(ylabels)
+
         if ax == None:
             fig = plt.figure(figsize=(5*matrix_size, 5*matrix_size))
+
+            #Do not share y-axes, since covariance can have different amplitudes
             ax = fig.subplots(matrix_size, matrix_size, sharex = True, sharey = False)
+
     elif Output_mode.lower() in ['correlation', 'corr']:
+
+        #'length' of matrix is one less than number of properties
         matrix_size = len(ylabels) - 1
+
         if ax == None:
             fig = plt.figure(figsize=(5*matrix_size, 5*matrix_size))
+
+            #Share y-axes since by definition, correlation must be within -1 <= r <= 1
             ax = fig.subplots(matrix_size, matrix_size, sharex = True, sharey = True)
 
     # Hard-encode size of labels on the x and y axis
@@ -743,6 +751,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, xrange = [], nBootstrap = 100, Out
             if Output_mode.lower() in ['covariance', 'cov']:
                 if j < i:
                     continue
+
             elif Output_mode.lower() in ['correlation', 'corr']:
                 if j <= i:
                     continue
@@ -815,14 +824,25 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
 
     # size of matrix
     if Output_mode.lower() in ['covariance', 'cov']:
+
+        #'length' of matrix is same as number of properties
         matrix_size = len(ylabels)
+
         if ax == None:
             fig = plt.figure(figsize=(5*matrix_size, 5*matrix_size))
+
+            #Do not share y-axes, since covariance can have different amplitudes
             ax = fig.subplots(matrix_size, matrix_size, sharex = True, sharey = False)
+
     elif Output_mode.lower() in ['correlation', 'corr']:
+
+        #'length' of matrix is one less than number of properties
         matrix_size = len(ylabels) - 1
+
         if ax == None:
             fig = plt.figure(figsize=(5*matrix_size, 5*matrix_size))
+
+            #Share y-axes since by definition, correlation must be within -1 <= r <= 1
             ax = fig.subplots(matrix_size, matrix_size, sharex = True, sharey = True)
 
     # Hard-encode size of labels on the x and y axis
@@ -866,6 +886,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
             if Output_mode.lower() in ['covariance', 'cov']:
                 if j < i:
                     continue
+
             elif Output_mode.lower() in ['correlation', 'corr']:
                 if j <= i:
                     continue
@@ -1109,4 +1130,3 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins = [], split_
     plt.legend(fontsize = fontsize.legend)
 
     return Output_Data, ax
-
