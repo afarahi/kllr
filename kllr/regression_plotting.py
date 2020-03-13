@@ -112,15 +112,15 @@ verbose : boolean
 Returns
 ----------
 
-Output_Data: Dictionary
-    A dictionary containing all outputs. Is of the form {parameter_name : array}
+Dictionary
+    A dictionary containing all outputs. Is of the form {parameter_name : numpy-array}
     The keys are parameter names (eg. x, y, slope, scatter), and the values
     are the computed properties themselves. Any data shown in plots will, and should, be stored in the Output_data dict.
 
-    In the split case, the Output_Data will be a 2D dictionary of form {Bin_id : {parameter_name : array}}, where Bin_id
+    In the split case, the dictionary will be a 2D dictionary of form {Bin_id : {parameter_name : array}}, where Bin_id
     represents the bin, determined by split_variable, within which the parameters were computed
 
-ax : axes
+Matplotlib.axes
     Axes on which results were plotted
 
 

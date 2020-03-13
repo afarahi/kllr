@@ -247,7 +247,7 @@ class kllr_model():
 
     def calc_correlation_fixed_x(self, x, y, z, weight=None):
         """
-        computes the covariance between two variables y and z at fixed x.
+        computes the correlation between two variables y and z at fixed x.
 
         Parameters
         ----------
