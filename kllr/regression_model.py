@@ -30,9 +30,9 @@ An example for using KLLR looks like this:
     |                                                                      |
     |    from kllr import kllr_model                                       |
     |                                                                      |
-    |    lm = kllr_model()                                                 |
+    |    lm = kllr_model(kernel_type = 'gaussian', kernel_width = 0.2)     |
     |    xrange, yrange_mean, intercept, slope, scatter =                  |
-    |             lm.fit(x, y, [0.0, 1.0], nbins=11, GaussianWidth=0.2)    |
+    |             lm.fit(x, y, nbins=11)                                   |
     |                                                                      |
     ------------------------------------------------------------------------
 

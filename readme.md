@@ -46,10 +46,11 @@ access the primary functions and class. The exact requirements for the inputs ar
 listed in the docstring of the kllr_model() class further below.
 An example for using KLLR looks like this:
 
-      from kllr import kllr_model
-       
-       lm = kllr_model()
-       xrange, yrange_mean, intercept, slope, scatter =
-           lm.fit(x, y, [0.0, 1.0], nbins=11, GaussianWidth=0.2)
-
+                                                                        
+        from kllr import kllr_model                                       
+                                                                          
+        lm = kllr_model(kernel_type = 'gaussian', kernel_width = 0.2)     
+        xrange, yrange_mean, intercept, slope, scatter = lm.fit(x, y, nbins=11)                                   
+                                                                          
+    
 
