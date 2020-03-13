@@ -361,7 +361,7 @@ class kllr_model():
         # changing it only changes accuracy a bit (narrower bins means interpolations are more accurate),
         # and also changes computation time
         if xrange is None:
-            xline = np.linspace(np.min(x), np.max(x), nbins)
+            xline = np.linspace(np.min(x)-0.01, np.max(x)+0.01, nbins)
         else:
             xline = np.linspace(xrange[0], xrange[1], nbins)
 
@@ -382,7 +382,7 @@ class kllr_model():
             slope = (yline2 - yline1) / (xline[i + 1] - xline[i])
 
             # Mask to select only halos in this bin
-            mask = (x > xline[i]) & (x < xline[i + 1])
+            mask = (x >= xline[i]) & (x < xline[i + 1])
 
             # Interpolate to get scatter at each halo
             std = scatter1 + (scatter2 - scatter1)/(xline[i + 1] - xline[i])*(x[mask] - xline[i])
