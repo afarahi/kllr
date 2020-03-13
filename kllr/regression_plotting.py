@@ -109,13 +109,20 @@ funcs : dictionary
 verbose : boolean
     controls the verbosity of the model's output.
 
-----------
-Outputs:
+Returns
 ----------
 
-Every function contains an Output_Data dictionary whose keys are the data vector names (eg. x, y, slope, scatter), and the values
-are the computed properties themselves. Any data shown in plots will, and should, be stored in the Output_data dict.
-This Output_Data dict will be returned by the function at the end.
+Output_Data: Dictionary
+    A dictionary containing all outputs. Is of the form {parameter_name : array}
+    The keys are parameter names (eg. x, y, slope, scatter), and the values
+    are the computed properties themselves. Any data shown in plots will, and should, be stored in the Output_data dict.
+
+    In the split case, the Output_Data will be a 2D dictionary of form {Bin_id : {parameter_name : array}}, where Bin_id
+    represents the bin, determined by split_variable, within which the parameters were computed
+
+ax : axes
+    Axes on which results were plotted
+
 
 
 ## TODO:
