@@ -58,7 +58,7 @@ Parameters
 df : pandas dataframe
     DataFrame containing all properties
 
-xlabel, ylabel, (zlabel) : strings
+xlabel, ylabel, (zlabel) : str
     labels of the data vectors of interest in the dataframe.
     In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
 
@@ -77,7 +77,7 @@ percentile : list, tuple, np.array
     List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
     Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
 
-split_label : string
+split_label : str
     Label of the data vector used to split the data, or condition the data, on a secondary variable.
 
 split_bins : int, list, tuple, numpy array
@@ -90,12 +90,12 @@ split_bins : int, list, tuple, numpy array
 
     If a list is provided then the list elements serve as the bin edges
 
-split_mode : string
+split_mode : str
     Sets how the data is split/conditioned based on the split variable
     If 'Data', then all halos are binned based on the variable df[split_label]
     If 'Residuals', then we fit split_label vs. xlabel, then split the data into bins based on the residual values
 
-labels : list of strings
+labels : list of str
     Allows for user-defined labels for x-axis, y-axis, legend labels.
 
 nbins : int
