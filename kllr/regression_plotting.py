@@ -56,55 +56,52 @@ Disclaimer:
 Parameters shared by all functions (for Arya's use):
 --------------------------------------
 
-df:
+df: pandas DataFrame
     DataFrame containing all properties
 
-xlabel, ylabel, (zlabel):
+xlabel, ylabel, (zlabel): strings
     labels of data vectors of interest in df. In case of matrix functions, we pass a list of labels into the "ylabels" parameter.
 
-show_data:
+show_data: Boolean
     Used in Plot_Fit function to show the datapoints used to make the LLR fit
 
-cutoff:
-    Determines cutoff in x-values. Will use whole inputted dataset to make calculations (unless doing a split case)
-    but then will only plot parametes for halos with x-value > cutoff
+xrange: list
+    A list of format [min, max]. Determines range of x-values for which parameters will be computed.
+    Defaults to np.min(x_data) and np.max(x_data) if no input is provided into xrange.
 
-nBootstrap:
+nBootstrap: int
     Sets how many bootstrap realizations are made when determining statistical error in parameters
 
-percentile:
+percentile: list
     List whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
     Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value for the param
 
-split_label:
+split_label: string
     Label of the data vector used to split the data
 
-split_bins:
+split_bins: list, int
     Either number of bins (int), or array of bin_edges. If a number is provided the modules will determine the
     bin_edges themselves using the data vector. By default, edges are set so there are equal number of data points in each bin.
 
-split_mode:
+split_mode: string
     Sets how the data is split based on the split variable
     If 'Data', then all halos are binned based on the variable df[split_label]
     If 'Residuals', then we fit split_label vs. xlabel, then split the data into bins based on the residual values
 
-labels:
+labels: list of strings
     Allows for user-defined labels for x-axis, y-axis, legend labels.
     Currently some modules let you change the actual x/y labels.
     Others only allow you to input what the property is called. Eg. xlabel -> M_{200c}
 
-nbins:
+nbins: int
     Available when plotting PDF. Sets the number of the bins the PDF is split into. Can also input an array, in which
     case it will be read as the edges of the bins.
 
-upperlim:
-    Available when plotting PDF. Along with use of 'cutoff', it helps construct PDF of residuals in any width bin of x-values
-
-funcs:
+funcs: dictionary
     Available when plotting PDF. A dictionary of format {key: function}, where the function will be run on all the residuals in
     every bootstrap realization. Results for median values and 1sigma bounds will be printed and stored in the Output_Data array
 
-verbose:
+verbose: Boolean
     controls the verbosity of the model's output.
 
 ----------
@@ -117,7 +114,7 @@ This Output_Data dict will be returned by the function at the end.
 
 
 ## TODO: take care of cutoff
-## give an error : data, ax = Plot_Fit_Split(df, 'M200', 'MStar_BCG100', 'z_form', split_bins=3, split_mode='Residuals') 
+## give an error : data, ax = Plot_Fit_Split(df, 'M200', 'MStar_BCG100', 'z_form', split_bins=3, split_mode='Residuals')
 '''
 
 def Plot_Fit(df, xlabel, ylabel, cutoff = 13.5, xrange = None, show_data = False, sampling_size = 25,
