@@ -58,7 +58,7 @@ Parameters
 df : pandas dataframe
     DataFrame containing all properties
 
-xlabel, ylabel, (zlabel) : str
+xlabel, ylabel(s) : str
     labels of the data vectors of interest in the dataframe.
     In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
 
@@ -128,6 +128,7 @@ Matplotlib.axes
 ## TODO:
     * take care of cutoff
     * give an error : data, ax = Plot_Fit_Split(df, 'M200', 'MStar_BCG100', 'z_form', split_bins=3, split_mode='Residuals')
+    * What to do if df labels are int instead of str (eg. 1, 2, 3 etc.)
 '''
 
 # constant (set it to np.log(10.0) if you wish to go from dex to fractional error in scatter)
