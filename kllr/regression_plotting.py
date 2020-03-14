@@ -606,7 +606,8 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, xrange = None, nBootstrap = 100, O
                     yy = y_data[index]
                     zz = z_data[index]
 
-                for k in range(len(xline)-1):
+                #Dhayaa: Changing len(xline) - 1 to len(xline)
+                for k in range(len(xline)):
 
                     if Output_mode.lower() in ['covariance', 'cov']:
                         cov_corr[iBoot, k] = lm.calc_covariance_fixed_x(xx, yy, zz, xline[k])
