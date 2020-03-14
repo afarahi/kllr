@@ -779,7 +779,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
                         yy = y_data[split_Mask][index]
                         zz = z_data[split_Mask][index]
 
-                    for l in range(len(xline)-1):
+                    for l in range(len(xline)):
 
                         if Output_mode.lower() in ['covariance', 'cov']:
                             cov_corr[iBoot, l] = lm.calc_covariance_fixed_x(xx, yy, zz, xline[l])
