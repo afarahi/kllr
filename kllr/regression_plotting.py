@@ -512,7 +512,7 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], spli
 
 def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, xrange = None, nBootstrap = 100, Output_mode = 'Covariance',
                          sampling_size = 25, kernel_type = 'gaussian', kernel_width = 0.2, percentile = [16., 84.],
-                         xlog = True, labels = [], color = None, verbose=True, ax = None):
+                         xlog = False, labels = [], color = None, verbose=True, ax = None):
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -648,7 +648,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, xrange = None, nBootstrap = 100, O
 
 def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = [], Output_mode = 'Covariance',
                                split_mode = 'Data', xrange = None, nBootstrap = 100, sampling_size = 25,
-                               kernel_type = 'gaussian', kernel_width = 0.2, xlog = True, percentile = [16., 84.],
+                               kernel_type = 'gaussian', kernel_width = 0.2, xlog = False, percentile = [16., 84.],
                                labels = [], color = None, verbose=True, ax = None):
 
     lm = kllr_model(kernel_type, kernel_width)
