@@ -39,10 +39,10 @@ An example for using KLLR looks like this:
 """
 
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
 from scipy import stats
 from sklearn import linear_model, mixture
+
 
 def scatter_cal(x, y, slope, intercept, dof=None, weight=None):
     """
@@ -51,28 +51,28 @@ def scatter_cal(x, y, slope, intercept, dof=None, weight=None):
     Parameters
     ----------
     x : numpy array
-        the vector of independent variable
+        Independent variable data vector.
 
     y : numpy array
-        the vector of dependent variable
+        Dependent variable data vector.
 
     slope : float
-        the slope of the regression model
+        Slope of the regression model.
 
     intercept : float
-        the intercept of the regression model
+        Intercept of the regression model.
 
-    dof : int
-        degree of freedom if known otherwise dof = len(x)
+    dof : int, optional
+        Degree of freedom if known otherwise dof = len(x)
 
-    weight : numpy array
-        the weight vector if None it set to one
+    weight : numpy array, optional
+        Individual weights for each sample. If None it assume a uniform weight.
 
 
     Returns
     -------
     float
-        the standard deviation of residuals about the mean relation
+        The standard deviation of residuals about the mean relation
 
     """
 
@@ -104,14 +104,14 @@ def calculate_weigth(x, kernel_type='gaussian', mu=0, width=0.2):
     Parameters
     ----------
     x : numpy array
-        the vector of independent variable
+        A one dimensional data vector.
 
-    kernel_type : string
-        the kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel. The default is Gaussian
+    kernel_type : string, optional
+        The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel. The default is Gaussian
 
-    mu, width : float
-        if kernel_type = 'gaussian' then 'mu' and 'width' are the mean and width of the gaussian kernels, respectively.
-        if kernel_type = 'uniform' then 'mu' and 'width' are the mean and width of the uniform kernels, respectively.
+    mu, width : float, optional
+        If kernel_type = 'gaussian' then 'mu' and 'width' are the mean and width of the gaussian kernels, respectively.
+        If kernel_type = 'uniform' then 'mu' and 'width' are the mean and width of the uniform kernels, respectively.
 
     Returns
     -------
@@ -122,7 +122,7 @@ def calculate_weigth(x, kernel_type='gaussian', mu=0, width=0.2):
     if len(x.shape) > 1:
         raise ValueError(
             "Incompatible dimension for X. X  should be one dimensional numpy array,"
-            ": len(X.shape) = %i."%(len(x.shape)))
+            ": len(X.shape) = %i." % (len(x.shape)))
 
     # the gaussian kernel
     def gaussian_kernel(x, mu=0.0, width=1.0):
@@ -131,7 +131,7 @@ def calculate_weigth(x, kernel_type='gaussian', mu=0, width=0.2):
     # the uniform kernel
     def uniform_kernel(x, mu=0.0, width=1.0):
         w = np.zeros(len(x))
-        w[(x-mu < width/2.0) * (x-mu > -width/2.0)] = 1.0
+        w[(x - mu < width / 2.0) * (x - mu > -width / 2.0)] = 1.0
         return w
 
     if kernel_type == 'gaussian':
@@ -148,30 +148,52 @@ def calculate_weigth(x, kernel_type='gaussian', mu=0, width=0.2):
 
 class kllr_model():
     """
-    A class used to represent a KLLR model and perform the fit.
+    A class used to represent a KLLR model and perform the fit. It is supported bu additional functions that allows
+     to compute the conditional properties such as residuals about the mean relation,
+     the correlation coefficient, and the covariance.
 
     Attributes
     ----------
-    XX : str
-        ...
+    kernel_type : string
+        The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel. The default is Gaussian
+
+    kernel_width : float
+         If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
+         If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
 
     Methods
     -------
-    XX(X=X)
-        ...
+    linear_regression(x, y, weight = None)
+        perform a linear regression give a set of weights
+
+    subsample(x, length=False)
+        generate a bootstrapped sample
+
+    calc_correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None)
+        compute the conditional correlation coefficient conditioned at point x
+
+    calc_covariance_fixed_x(x, y, xrange = None, nbins = 60, kernel_type = None, kernel_width = None)
+        compute the conditional correlation coefficient conditioned at point x
+
+    calculate_residual(x, y, xrange = None, nbins = 60, kernel_type = None, kernel_width = None)
+        compute residuls about the mean relation i.e., res = y - <y|X>
+
+    PDF_generator(self, res, nbins, nBootstrap = 1000, funcs = {}, xrange = (-4, 4), verbose = True,  **kwargs)
+        generate a binned PDF of residuasl around the mean relation
+
+    fit(x, y, xrange = None, nbins = 25, kernel_type = None, kernel_width = None)
+        fit a kernel localized linear relation to (x, y) pairs, i.e. <y | x> = a(y) x + b(y)
+
     """
 
-    def __init__(self, kernel_type = 'gaussian', kernel_width = 0.2):
+    def __init__(self, kernel_type='gaussian', kernel_width=0.2):
         """
         Parameters
         ----------
-        x : numpy array
-            the vector of independent variable
-
-        kernel_type : string
+        kernel_type : string, optional
             the kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel. The default is Gaussian
 
-        kernel_width : float
+        kernel_width : float, optional
             if kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
             if kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
         """
@@ -179,21 +201,21 @@ class kllr_model():
         self.kernel_type = kernel_type
         self.kernel_width = kernel_width
 
-    def linear_regression(self, x, y, weight = None):
+    def linear_regression(self, x, y, weight=None):
         """
-        perform a linear regression given a set of weights and return the normalization, slope, and
+        This function perform a linear regression given a set of weights and return the normalization, slope, and
         scatter about the mean relation.
 
         Parameters
         ----------
         x : numpy array
-            the vector of independent variable
+            Independent variable data vector. This version only support a one dimensional data vector.
 
         y : numpy array
-            the vector of dependent variable
+            Dependent variable data vector. This version only support a one dimensional data vector.
 
-        weight : float
-            the weight vector
+        weight : float, optional
+            Individual weights for each sample. If none it assumes a uniform weight.
 
         Returns
         -------
@@ -227,10 +249,10 @@ class kllr_model():
         Parameters
         ----------
         x : numpy array
-            the vector of independent variable
+            One dimensional data array.
 
-        length : string
-            the kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel. The default is Gaussian
+        length : bool, optional
+            The length of bootstrapped sample. If False it assumes `length = len(x)`.
 
         Returns
         -------
@@ -245,28 +267,37 @@ class kllr_model():
         resample = np.floor(np.random.rand(l) * int(len(x))).astype(int)
         return x[resample], resample
 
-    def calc_correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None):
+    def calc_correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type=None, kernel_width=None):
         """
-        computes the correlation between two variables y and z at fixed x.
+        This function computes the conditional correlation between two variables data_y and data_z at point x.
 
         Parameters
         ----------
         data_x : numpy array
-            the data vector of independent variable
+            Independent variable data vector. This version only support a one dimensional data vector.
 
         data_y : numpy array
-            the data vector of dependent variable
+            Dependent variable data vector. This version only support a one dimensional data vector.
 
         data_z : numpy array
-            the data vector of dependent variable
+            Dependent variable data vector. This version only support a one dimensional data vector.
 
         x : float
-            value of the conditional parameter
+            Value of the conditional parameter. It computes the correlation coefficient at this point.
+
+        kernel_type : string, optional
+            Rhe kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
+            If None it uses the pre-specified `kernel_type`
+
+        kernel_width : float, optional
+            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
+            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
+            If None it uses the pre-specified `kernel_width`
 
         Returns
         -------
         float
-             correlation coefficient
+             Correlation coefficient.
         """
 
         if kernel_type is not None:
@@ -283,32 +314,41 @@ class kllr_model():
         intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)
         dz = data_z - slope * data_x - intercept
 
-        sig = np.cov(dy, dz, aweight = weight)
+        sig = np.cov(dy, dz, aweight=weight)
 
-        return sig[1,0] / np.sqrt(sig[0,0]*sig[1, 1])
+        return sig[1, 0] / np.sqrt(sig[0, 0] * sig[1, 1])
 
-    def calc_covariance_fixed_x(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None):
+    def calc_covariance_fixed_x(self, data_x, data_y, data_z, x, kernel_type=None, kernel_width=None):
         """
-        computes the covariance between two variables y and z at fixed x.
+        This function computes the conditional covariance between two variables data_y and data_z at point x.
 
         Parameters
         ----------
         data_x : numpy array
-            the data vector of independent variable
+            Independent variable data vector. This version only support a one dimensional data vector.
 
         data_y : numpy array
-            the data vector of dependent variable
+            Dependent variable data vector. This version only support a one dimensional data vector.
 
         data_z : numpy array
-            the data vector of dependent variable
+            Dependent variable data vector. This version only support a one dimensional data vector.
 
         x : float
-            value of the conditional parameter
+            Value of the conditional parameter. It computes the covariance at this point.
+
+        kernel_type : string, optional
+            Rhe kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
+            If None it uses the pre-specified `kernel_type`
+
+        kernel_width : float, optional
+            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
+            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
+            If None it uses the pre-specified `kernel_width`
 
         Returns
         -------
         float
-             covariance
+             Covariance.
         """
 
         if kernel_type is not None:
@@ -319,42 +359,48 @@ class kllr_model():
 
         weight = calculate_weigth(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
 
-        intercept, slope, sig = self.linear_regression(data_x, data_y, weight = weight)
+        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)
         dy = data_y - slope * data_x - intercept
 
-        intercept, slope, sig = self.linear_regression(data_x, data_z, weight = weight)
+        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)
         dz = data_z - slope * data_x - intercept
 
-        sig = np.cov(dy, dz, aweights = weight)
+        sig = np.cov(dy, dz, aweights=weight)
 
-        return sig[1,0]
+        return sig[1, 0]
 
-    def calculate_residual(self, x, y, xrange = None, nbins = 60, kernel_type = None, kernel_width = None):
+    def calculate_residual(self, x, y, xrange=None, nbins=60, kernel_type=None, kernel_width=None):
         """
-        This function computes the residuals about the mean relation.
-
+        This function computes the residuals about the mean relation, i.e. res = y - <y | x>.
 
         Parameters
         ----------
         x : numpy array
-            the vector of independent variable
+            Independent variable data vector. This version only support a one dimensional data vector.
 
         y : numpy array
-            the vector of dependent variable
+            Dependent variable data vector. This version only support a one dimensional data vector.
 
-        xrange : list
-            the first element is the min and the second element is the max
+        xrange : list, optional
+            The range of regression. The first element is the min and the second element is the max.
+            If None it set it to min and max of x, i.e., `xrange = [min(x), max(x)]`
 
-        nbins : int
-            the numbers of data points to compute the local regression parameters
+        nbins : int, optional
+            The numbers of bins to compute the local regression parameters. The default value is 60 bins.
 
-        GaussianWidth : float
-            constant that sets the width of the gaussian kernel
+        kernel_type : string, optional
+            The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
+            If None it uses the pre-specified `kernel_type`
+
+        kernel_width : float, optional
+            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
+            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
+            If None it uses the pre-specified `kernel_width`
 
         Returns
         -------
         numpy array
-             residuals
+             Individual residuals.
         """
 
         if kernel_type is not None:
@@ -363,23 +409,22 @@ class kllr_model():
         if kernel_width is not None:
             self.kernel_width = kernel_width
 
-        res = np.array([]) # Array to store residuals
-        Index = np.array([]) # array to map what residual belongs to what Halo
+        res = np.array([])  # Array to store residuals
+        Index = np.array([])  # array to map what residual belongs to what Halo
 
         # NOTE: The number of sampling points (60) is currently used as default option
         # changing it only changes accuracy a bit (narrower bins means interpolations are more accurate),
         # and also changes computation time
         if xrange is None:
-            xline = np.linspace(np.min(x)-0.01, np.max(x)+0.01, nbins)
+            xline = np.linspace(np.min(x) - 0.01, np.max(x) + 0.01, nbins)
         else:
             xline = np.linspace(xrange[0], xrange[1], nbins)
 
         # Loop over each bin defined by the bin edges above
         for i in range(len(xline) - 1):
-
             # Compute weight at each edge
             w1 = calculate_weigth(x, kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
-            w2 = calculate_weigth(x, kernel_type=self.kernel_type, mu=xline[i+1], width=self.kernel_width)
+            w2 = calculate_weigth(x, kernel_type=self.kernel_type, mu=xline[i + 1], width=self.kernel_width)
 
             # Compute expected y-value at each bin-edge
             intercept1, slope1, scatter1 = self.linear_regression(x, y, weight=w1)
@@ -394,10 +439,10 @@ class kllr_model():
             mask = (x >= xline[i]) & (x < xline[i + 1])
 
             # Interpolate to get scatter at each halo
-            std = scatter1 + (scatter2 - scatter1)/(xline[i + 1] - xline[i])*(x[mask] - xline[i])
+            std = scatter1 + (scatter2 - scatter1) / (xline[i + 1] - xline[i]) * (x[mask] - xline[i])
             # Interpolate expected y-values and Compute residuals
-            dy = y[mask] - (yline1 + (yline2 - yline1)/(xline[i + 1] - xline[i])*(x[mask] - xline[i]))
-            res = np.concatenate((res, dy/std))
+            dy = y[mask] - (yline1 + (yline2 - yline1) / (xline[i + 1] - xline[i]) * (x[mask] - xline[i]))
+            res = np.concatenate((res, dy / std))
 
             # Keep track of an index that maps which residual belongs to which halo
             Index = np.concatenate((Index, np.where(mask)[0]))
@@ -407,36 +452,52 @@ class kllr_model():
 
         return res
 
-    def PDF_generator(self, res, nbins, nBootstrap = 1000, funcs = {}, xrange = (-4, 4), verbose = True,  **kwargs):
+    def PDF_generator(self, res, nbins=20, nBootstrap=1000, funcs={}, xrange=(-4, 4), verbose=True,
+                      density=True, weights=None):
         """
 
         Parameters
         ----------
         res : numpy array
-            Data to be binned.
+            Individual residuals, i.e. res = y - <y|x>.
 
-        nbins : integer
-            Number of bins for the PDF
+        nbins : integer, optional
+            Number of bins for the PDF.
 
-        xrange : tuple contaning 2 values
-            tuple containing min and max bin values
+        xrange : list, optional
+            Tuple containing min and max bin values.
 
-        nBootstrap : integer
-            Number of Bootstrap realizations of the PDF
+        nBootstrap : integer, optional
+            Number of Bootstrap realizations of the PDF.
 
-        funcs : dictionary
+        funcs : dictionary, optional
             Dictionary of functions to apply on the Bootstrapped residuals. Format is {'Name': func}.
+
+        verbose : bool, optional
+            Turn on/off the verbosity of the PDF output during the bootstrapping.
+
+        density : bool, optional
+            If False, the result will contain the number of samples in each bin.
+             If True, the result is the value of the probability density function at the bin, normalized such
+             that the integral over the range is 1. Note that the sum of the histogram values will not be
+             equal to 1 unless bins of unity width are chosen; it is not a probability mass function.
+
+        weights : numpy array, optional
+            An array of weights, of the same shape as a. Each value in a only contributes its associated weight
+             towards the bin count (instead of 1). If density is True, the weights are normalized, so that the
+             integral of the density over the range remains 1. If None it assumes a uniform weight.
 
         Returns
         -------
         numpy array
-            numpy array of size (nBootstrap, nbins) containing all realizations of PDFs
+            Numpy array of size (nBootstrap, nbins) containing all realizations of PDFs
 
         numpy array
             Central values of the bins of the PDF
 
         Dictionary
-            Dictionary with format {'name': result}, where result is the output of user-inputted inputted functions acting on residuals.
+            Dictionary with format {'name': result}, where result is the output of user-inputted inputted
+            functions acting on residuals.
         """
 
         if verbose:
@@ -459,24 +520,19 @@ class kllr_model():
             # Choose to use list over np.array because list can handle many types of data
             Output[function_name] = []
 
-        try:
-            density = kwargs['density']
-        except:
-            density = False
-
         for iBoot in iterations:
 
             if iBoot == 0:
                 residuals = res
                 try:
-                    w = kwargs['weights']
+                    w = weights
                 except:
                     w = None
             else:
                 residuals, index = self.subsample(res)
                 try:
                     # If weights exist, reshuffle them according to subsampling
-                    w = kwargs['weights'][index]
+                    w = weights[index]
                 except:
                     w = None
 
@@ -498,44 +554,50 @@ class kllr_model():
 
         return PDFs, bins, Output
 
-    def fit(self, x, y, xrange = None, nbins = 25, kernel_type = None, kernel_width = None):
+    def fit(self, x, y, xrange=None, nbins=25, kernel_type=None, kernel_width=None):
         """
         This function computes the local regression parameters at the points within xrange.
 
         Parameters
         ----------
         x : numpy array
-            the vector of independent variable
+            Independent variable data vector. This version only support a one dimensional data vector.
 
         y : numpy array
-            the vector of dependent variable
+            Dependent variable data vector. This version only support a one dimensional data vector.
 
-        xrange : list
-            the first element is the min and the second element is the max,
-            if None, it sets xrange to [min(x), max(x)]
+        xrange : list, optional
+            The first element is the min and the second element is the max,
+            If None, it sets xrange to [min(x), max(x)]
 
-        nbins : int
-            the numbers of data points to compute the local regression parameters
+        nbins : int, optional
+            The numbers of data points to compute the local regression parameters
 
-        kernel_width : float
-            constant that sets the width of the kernel, if None uses the initialized version
+        kernel_type : string, optional
+            The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
+            If None it uses the pre-specified `kernel_type`
+
+        kernel_width : float, optional
+            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
+            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
+            If None it uses the pre-specified `kernel_width`.
 
         Returns
         -------
         numpy-array
-            the local points
+            The local points.
 
         numpy-array
-            the mean value at the local points
+            The mean value at the local points
 
         numpy-array
-            the intercept at the local points
+            The intercept at the local points
 
         numpy-array
-            the slope at the local points
+            The slope at the local points
 
         numpy-array
-            the scatter around mean relation
+            The scatter around mean relation
         """
 
         # Define x_values to compute regression parameters at
