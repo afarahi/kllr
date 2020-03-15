@@ -314,7 +314,7 @@ class kllr_model():
         intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)
         dz = data_z - slope * data_x - intercept
 
-        sig = np.cov(dy, dz, aweight=weight)
+        sig = np.cov(dy, dz, aweights=weight)
 
         return sig[1, 0] / np.sqrt(sig[0, 0] * sig[1, 1])
 
