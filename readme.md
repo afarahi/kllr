@@ -1,3 +1,7 @@
+![GitHub](https://img.shields.io/github/license/afarahi/kllr)
+![PyPI](https://img.shields.io/pypi/v/kllr)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/kllr)
+
 <p align="center">
   <img src="logo.png" width="300" title="logo">
 </p>
