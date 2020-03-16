@@ -30,14 +30,16 @@ with open(os.path.join(dir_path, 'readme.md')) as f:
     long_description = f.read()
 
 kwargs = {
-    'name': 'KLLR',
+    'name': 'kllr',
     'version': '1.0.0',
     'author': 'Arya Farahi, Dhayaa Anbajagane',
     'author_email': 'aryaf@umich.edu',
+    'packages': ['KLLR'],
     'url': 'https://github.com/afarahi/kllr',
     'description': 'Kernel Localized Linear Regression.',
     'long_description': long_description,
     'long_description_content_type':'text/markdown',
+    'url':'https://github.com/afarahi/kllr',
     'license': 'MIT',
     'keywords': ['linear', 'regression', 'astronomy', 'astrophysics', 'parameter estimation'],
     'install_requires': ['numpy', 'scipy', 'matplotlib', 'pandas', 'sklearn', 'tqdm'],
