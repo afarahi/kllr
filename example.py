@@ -59,7 +59,7 @@ S += delta
 df = pd.DataFrame(S.T, columns = ['Data1', 'Data2', 'Data3', 'Data4', 'Data5'])
 
 #Setup kernel local linear regression model
-lm = kllr_model(kernel_type = 'gaussian', kernel_width = 0.2)
+lm = kllr_model(kernel_type = 'gaussian', kernel_width = 1)
 
 #Compute parameters
 x, y_exp, intercept_exp, slope_exp, scatter_exp = lm.fit(df['Data1'], df['Data2'], xrange=[2, 8], nbins=11)
@@ -71,28 +71,28 @@ Params = np.concatenate((x, y_exp, intercept_exp, slope_exp, scatter_exp))
 np.savetxt("Params.txt", Params)
 
 #Generate and save fiducial analyses plots
-data, ax = Plot_Fit(df, 'Data1', 'Data2', show_data=True, ax=None)
+data, ax = Plot_Fit(df, 'Data1', 'Data2', show_data=True, ax=None, kernel_width = 1)
 plt.savefig("Fit.pdf")
 
-data, ax = Plot_Fit_Split(df, 'Data1', 'Data2', 'Data3', split_bins=[1, 10, 20])
+data, ax = Plot_Fit_Split(df, 'Data1', 'Data2', 'Data3', split_bins=[1, 10, 20], kernel_width = 1)
 plt.savefig("Fit_split.pdf")
 
-data, ax = Plot_Fit_Params(df, 'Data1', 'Data2', xlog=False)
+data, ax = Plot_Fit_Params(df, 'Data1', 'Data2', xlog=False, kernel_width = 1)
 plt.savefig("Fit_Params.pdf")
 
-data, ax = Plot_Fit_Params_Split(df, 'Data1', 'Data2', 'Data3', split_bins=[1, 10, 20], split_mode='Data')
+data, ax = Plot_Fit_Params_Split(df, 'Data1', 'Data2', 'Data3', split_bins=[1, 10, 20], split_mode='Data', kernel_width = 1)
 plt.savefig("Fit_Params_Split.pdf")
 
-ax = Plot_Cov_Corr_Matrix(df, 'Data1', ['Data2', 'Data3', 'Data4'], Output_mode = 'corr')
+ax = Plot_Cov_Corr_Matrix(df, 'Data1', ['Data2', 'Data3', 'Data4'], Output_mode = 'corr', kernel_width = 1)
 plt.savefig("Corr_Matrix.pdf")
 
-ax = Plot_Cov_Corr_Matrix_Split(df, 'Data1', ['Data2', 'Data4', 'Data5'], 'Data3', split_bins=[1, 10, 20], Output_mode = 'corr')
+ax = Plot_Cov_Corr_Matrix_Split(df, 'Data1', ['Data2', 'Data4', 'Data5'], 'Data3', split_bins=[1, 10, 20], Output_mode = 'corr', kernel_width = 1)
 plt.savefig("Corr_Matrix_Split.pdf")
 
 data, ax = Plot_Residual(df, 'Data1', 'Data2')
 plt.savefig("PDF.pdf")
 
-data, ax = Plot_Residual_Split(df, 'Data1', 'Data2', 'Data3', split_bins=[1, 10, 20], split_mode = 'Data')
+data, ax = Plot_Residual_Split(df, 'Data1', 'Data2', 'Data3', split_bins=[1, 10, 20], split_mode = 'Data', kernel_width = 1)
 plt.savefig("PDF_Split.pdf")
 
 plt.show()
