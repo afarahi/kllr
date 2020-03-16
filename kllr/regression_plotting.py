@@ -762,6 +762,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
                 elif split_mode == 'Residuals':
                     split_Mask = (split_res < split_bins[k + 1]) & (split_res > split_bins[k])
 
+                #Todo: Change xline so it only goes from min to max of SUBSET sample not overall sample
                 xline = np.linspace(xrange[0], xrange[1], sampling_size)
                 xline = (xline[1:] + xline[:-1]) / 2.
 
@@ -791,9 +792,10 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
                 elif split_mode == 'Residuals':
                     label = r'$%0.2f < {\rm res}(%s) < %0.2f$' % (split_bins[k], labels[-1], split_bins[k + 1])
 
-                if xlog: xline = 10 ** (xline)
+                if xlog:
+                    xline = 10 ** (xline)
+                    ax_tmp.set_xscale('log')
 
-                ax_tmp.set_xscale('log')
                 ax_tmp.axis('on')
                 ax_tmp.plot(xline, np.mean(cov_corr, axis=0), lw=3, color=color[k], label=label)
                 ax_tmp.fill_between(xline,
