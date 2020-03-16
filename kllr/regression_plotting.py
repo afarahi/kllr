@@ -762,8 +762,6 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
                 elif split_mode == 'Residuals':
                     split_Mask = (split_res < split_bins[k + 1]) & (split_res > split_bins[k])
 
-                #Todo: Change xline so it only goes from min to max of SUBSET sample not overall sample
-                #Else get errors when extrapolating covariance (weights sum to zero etc.)
                 xline = np.linspace(xrange[0], xrange[1], sampling_size)
                 xline = (xline[1:] + xline[:-1]) / 2.
 
