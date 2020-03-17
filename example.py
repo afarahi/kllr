@@ -67,6 +67,7 @@ x, y_exp, intercept_exp, slope_exp, scatter_exp = lm.fit(df['x'], df['y1'], xran
 # Generate and save fiducial analyses plots
 data, ax = Plot_Fit(df, 'x', 'y1', show_data=True, kernel_width = 0.4)
 data, ax = Plot_Fit(df, 'x', 'y2', show_data=True, kernel_width = 0.4, ax = ax)
+plt.grid()
 if saveplot: plt.savefig("./examples/Fit.pdf", bbox_inches='tight')
 
 data, ax = Plot_Fit_Split(df, 'x', 'y1', 'y3', split_mode = 'Residuals', split_bins=3, kernel_width = 0.4)
