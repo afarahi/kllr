@@ -8,11 +8,15 @@ from kllr import *
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
 
+# Number of samples to be generated
+N = 10000
+saveplot = False
+showplot = True
 
-N        = 10000 # Number of samples to be generated
-width    = 0.4   # Kernel_width used in all the plotting functions
-saveplot = False #If True, save plots to ./examples/
+if not os.path.exists('./examples') and saveplot:
+    os.makedirs('./examples')
 
 # Generate 2D vector to hold all properties
 # This will help with matrix multiplication later
@@ -43,7 +47,6 @@ S[3, :] = y3
 S[4, :] = y4
 
 # Covariance matrix
-# TODO: x-dependent covariance matrix!
 Cov = np.array([[16., 0.,  4., 0.],
                 [0.,  4., -1., 0.],
                 [4., -1.,  4., 0.],
@@ -59,47 +62,38 @@ S[1:] += delta
 df = pd.DataFrame(S.T, columns = ['x', 'y1', 'y2', 'y3', 'y4'])
 
 # Setup kernel local linear regression model
-lm = kllr_model(kernel_type = 'gaussian', kernel_width = width)
+lm = kllr_model(kernel_type = 'gaussian', kernel_width = 0.2)
 
 # Compute regression parameters
 x, y_exp, intercept_exp, slope_exp, scatter_exp = lm.fit(df['x'], df['y1'], xrange=[2, 8], nbins=11)
 
-# TODO: Add checkdir commands to make sure folder exists, if not make one
 # Generate and save fiducial analyses plots
-data, ax = Plot_Fit(df, 'x', 'y1', show_data=True, kernel_width = width)
-data, ax = Plot_Fit(df, 'x', 'y2', show_data=True, kernel_width = width, ax = ax)
-plt.grid()
+data, ax = Plot_Fit(df, 'x', 'y1', show_data=True, kernel_width = 0.4)
+data, ax = Plot_Fit(df, 'x', 'y2', show_data=True, kernel_width = 0.4, ax = ax)
 if saveplot: plt.savefig("./examples/Fit.pdf", bbox_inches='tight')
 
-data, ax = Plot_Fit_Split(df, 'x', 'y1', 'y3', split_mode = 'Residuals', split_bins=3, kernel_width = width)
+data, ax = Plot_Fit_Split(df, 'x', 'y1', 'y3', split_mode = 'Residuals', split_bins=3, kernel_width = 0.4)
 if saveplot: plt.savefig("./examples/Fit_split.pdf", bbox_inches='tight')
 
-data, ax = Plot_Fit_Params(df, 'x', 'y1', xlog=False, kernel_width = width)
-data, ax = Plot_Fit_Params(df, 'x', 'y2', xlog=False, kernel_width = width, ax=ax)
-data, ax = Plot_Fit_Params(df, 'x', 'y3', xlog=False, kernel_width = width, ax=ax)
+data, ax = Plot_Fit_Params(df, 'x', 'y1', xlog=False, kernel_width = 0.4)
+data, ax = Plot_Fit_Params(df, 'x', 'y2', xlog=False, kernel_width = 0.4, ax=ax)
+data, ax = Plot_Fit_Params(df, 'x', 'y3', xlog=False, kernel_width = 0.4, ax=ax)
 if saveplot: plt.savefig("./examples/Fit_Params.pdf", bbox_inches='tight')
 
-data, ax = Plot_Fit_Params_Split(df, 'x', 'y1', 'y3', split_bins = 2, split_mode = 'Residuals', kernel_width = width)
+data, ax = Plot_Fit_Params_Split(df, 'x', 'y1', 'y3', split_bins = 2, split_mode = 'Residuals', kernel_width = 0.4)
 if saveplot: plt.savefig("./examples/Fit_Params_Split.pdf", bbox_inches='tight')
 
-ax = Plot_Cov_Corr_Matrix(df, 'x', ['y1', 'y2', 'y3'], Output_mode = 'corr', kernel_width = width)
+ax = Plot_Cov_Corr_Matrix(df, 'x', ['y1', 'y2', 'y3'], Output_mode = 'corr', kernel_width = 0.4)
 if saveplot: plt.savefig("./examples/Corr_Matrix.pdf", bbox_inches='tight')
 
 ax = Plot_Cov_Corr_Matrix_Split(df, 'x', ['y1', 'y2', 'y3'], 'y3', split_bins = 2,
-                                split_mode = 'Residuals', Output_mode = 'corr', kernel_width = width)
+                                split_mode = 'Residuals', Output_mode = 'corr', kernel_width = 0.4)
 if saveplot: plt.savefig("./examples/Corr_Matrix_Split.pdf", bbox_inches='tight')
-
-ax = Plot_Cov_Corr_Matrix(df, 'x', ['y1', 'y2', 'y3'], Output_mode = 'cov', kernel_width = width)
-if saveplot: plt.savefig("./examples/Cov_Matrix.pdf", bbox_inches='tight')
-
-ax = Plot_Cov_Corr_Matrix_Split(df, 'x', ['y1', 'y2', 'y3'], 'y3', split_bins = 2,
-                                split_mode = 'Residuals', Output_mode = 'cov', kernel_width = width)
-if saveplot: plt.savefig("./examples/Cov_Matrix_Split.pdf", bbox_inches='tight')
 
 data, ax = Plot_Residual(df, 'x', 'y1')
 if saveplot: plt.savefig("./examples/PDF.pdf", bbox_inches='tight')
 
-data, ax = Plot_Residual_Split(df, 'x', 'y2', 'y3', split_bins = 2, split_mode = 'Residuals', kernel_width = width)
+data, ax = Plot_Residual_Split(df, 'x', 'y2', 'y3', split_bins = 2, split_mode = 'Residuals', kernel_width = 0.4)
 if saveplot: plt.savefig("./examples/PDF_Split.pdf", bbox_inches='tight')
 
-plt.show()
+if showplot: plt.show()

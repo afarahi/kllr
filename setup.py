@@ -31,7 +31,7 @@ with open(os.path.join(dir_path, 'readme.md')) as f:
 
 kwargs = {
     'name': 'kllr',
-    'version': '1.0.0',
+    'version': '1.0.2',
     'author': 'Arya Farahi, Dhayaa Anbajagane',
     'author_email': 'aryaf@umich.edu',
     'packages': ['KLLR'],
