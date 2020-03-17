@@ -836,9 +836,9 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
     return ax
 
 
-def Plot_Residual(df, xlabel, ylabel, nbins = 15, xrange = None, nBootstrap = 1000, kernel_type = 'gaussian',
-                  kernel_width = 0.2, percentile = [16., 84.], funcs = {}, labels = [],
-                  color = None, verbose = True, ax = None):
+def Plot_Residual(df, xlabel, ylabel, nbins = 15, xrange = None, PDFrange = (-4,4), nBootstrap = 1000,
+                  kernel_type = 'gaussian', kernel_width = 0.2, percentile = [16., 84.],
+                  funcs = {}, labels = [], color = None, verbose = True, ax = None):
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -869,7 +869,7 @@ def Plot_Residual(df, xlabel, ylabel, nbins = 15, xrange = None, nBootstrap = 10
 
     output_Data['Residuals'] = dy
 
-    PDFs, bins, output = lm.PDF_generator(dy, nbins, nBootstrap, funcs, density=True, verbose=verbose)
+    PDFs, bins, output = lm.PDF_generator(dy, nbins, nBootstrap, funcs, xrange = PDFrange, density=True, verbose=verbose)
 
     for r in results:
         min = np.percentile(output[r], percentile[0])
@@ -894,8 +894,8 @@ def Plot_Residual(df, xlabel, ylabel, nbins = 15, xrange = None, nBootstrap = 10
 
 
 def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins = [], split_mode = 'Data', nbins = 15, xrange = None,
-                        nBootstrap = 1000, kernel_type = 'gaussian', kernel_width = 0.2, percentile = [16., 84.],
-                        labels = [], funcs = {}, color = None, verbose = True, ax = None):
+                        PDFrange = (-4,4), nBootstrap = 1000, kernel_type = 'gaussian', kernel_width = 0.2,
+                        percentile = [16., 84.], labels = [], funcs = {}, color = None, verbose = True, ax = None):
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -955,7 +955,7 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins = [], split_
         output_Data['Bin' + str(i)]['Residuals'] = dy[split_Mask]
 
         PDFs, bins, output = lm.PDF_generator(dy[split_Mask], nbins, nBootstrap, funcs,
-                                              density = True, verbose = verbose)
+                                              xrange = PDFrange, density = True, verbose = verbose)
 
         for r in results:
             min = np.percentile(output[r], percentile[0])
