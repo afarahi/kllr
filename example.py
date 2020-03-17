@@ -23,7 +23,6 @@ S = np.zeros((5, N))
 x = np.random.uniform(-10, 10, N)
 
 # Specify intercept and slopes of other variables
-# TODO: Alpha must be x-dependent!
 pi1, alpha1, alpha11 = 0, 1, 1
 pi2, alpha2 = 0, 1
 pi3, alpha3, alpha31 = 0, 1, -1
@@ -87,6 +86,13 @@ if saveplot: plt.savefig("./examples/Corr_Matrix.pdf", bbox_inches='tight')
 ax = Plot_Cov_Corr_Matrix_Split(df, 'x', ['y1', 'y2', 'y3'], 'y3', split_bins = 2,
                                 split_mode = 'Residuals', Output_mode = 'corr', kernel_width = 0.4)
 if saveplot: plt.savefig("./examples/Corr_Matrix_Split.pdf", bbox_inches='tight')
+
+ax = Plot_Cov_Corr_Matrix(df, 'x', ['y1', 'y2', 'y3'], Output_mode = 'cov', kernel_width = 0.4)
+if saveplot: plt.savefig("./examples/Cov_Matrix.pdf", bbox_inches='tight')
+
+ax = Plot_Cov_Corr_Matrix_Split(df, 'x', ['y1', 'y2', 'y3'], 'y3', split_bins = 2,
+                                split_mode = 'Residuals', Output_mode = 'cov', kernel_width = 0.4)
+if saveplot: plt.savefig("./examples/Cov_Matrix_Split.pdf", bbox_inches='tight')
 
 data, ax = Plot_Residual(df, 'x', 'y1')
 if saveplot: plt.savefig("./examples/PDF.pdf", bbox_inches='tight')
