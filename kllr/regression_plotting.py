@@ -66,6 +66,10 @@ show_data : boolean
     Used in Plot_Fit function to show the datapoints used to make the LLR fit.
     Is set to show_data = False, by default
 
+nbins : int
+    Sets the number of points within x_range that the parameters are sampled at.
+    When plotting a PDF it sets the number of bins the PDF is split into.
+
 xrange : list, tuple, np.array
     A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
     By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
@@ -98,16 +102,12 @@ split_mode : str
 labels : list of str
     Allows for user-defined labels for x-axis, y-axis, legend labels.
 
-nbins : int
-    Available when plotting PDF. Sets the number of the bins the PDF is split into. Can also input an array, in which
-    case it will be read as the edges of the bins.
-
 funcs : dictionary
     Available when plotting PDF. A dictionary of format {key: function}, where the function will be run on all the residuals in
     every bootstrap realization. Results for median values and 1sigma bounds will be printed and stored in the Output_Data array
 
 verbose : boolean
-    controls the verbosity of the model's output.
+    Controls the verbosity of the model's output.
 
 Returns
 ----------
@@ -150,8 +150,9 @@ def setup_color(color, split_bins, cmap = None):
     return color
 
 
-def Plot_Fit(df, xlabel, ylabel, xrange = None, show_data = False, sampling_size = 25, kernel_type = 'gaussian',
-             kernel_width = 0.2, xlog = False, ylog = False, color = None, labels = [], ax=None):
+def Plot_Fit(df, xlabel, ylabel, nbins = 25, xrange = None, show_data = False,
+             kernel_type = 'gaussian', kernel_width = 0.2, xlog = False, ylog = False,
+             color = None, labels = [], ax=None):
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -179,7 +180,7 @@ def Plot_Fit(df, xlabel, ylabel, xrange = None, show_data = False, sampling_size
 
     x_data, y_data = x_data[mask], y_data[mask]
 
-    x, y = lm.fit(x_data, y_data, xrange = xrange, nbins = sampling_size)[0:2]
+    x, y = lm.fit(x_data, y_data, xrange = xrange, nbins = nbins)[0:2]
 
     if xlog: x = 10**x
     if ylog: y = 10**y
@@ -205,8 +206,8 @@ def Plot_Fit(df, xlabel, ylabel, xrange = None, show_data = False, sampling_size
     return output_Data, ax
 
 
-def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], xrange = None, show_data = False,
-                   split_mode = 'Data', sampling_size = 25, kernel_type = 'gaussian', kernel_width = 0.2,
+def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], nbins = 25, xrange = None,
+                   show_data = False, split_mode = 'Data', kernel_type = 'gaussian', kernel_width = 0.2,
                    xlog = False, ylog = False, color = None, labels = [], ax=None):
 
     lm = kllr_model(kernel_type, kernel_width)
@@ -300,7 +301,7 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], xrange = No
     return output_Data, ax
 
 
-def Plot_Fit_Params(df, xlabel, ylabel, xrange = None, nBootstrap = 100, sampling_size = 25,
+def Plot_Fit_Params(df, xlabel, ylabel, nbins = 25, xrange = None, nBootstrap = 100,
                     kernel_type = 'gaussian', kernel_width = 0.2, percentile = [16., 84.],
                     xlog = False, labels = [], color = None, verbose=True, ax=None):
 
@@ -338,9 +339,9 @@ def Plot_Fit_Params(df, xlabel, ylabel, xrange = None, nBootstrap = 100, samplin
     x_data, y_data = x_data[mask], y_data[mask]
 
     # Generate new arrays to store params in for each Bootstrap realization
-    scatter = np.empty([nBootstrap, sampling_size])
-    slope = np.empty([nBootstrap, sampling_size])
-    intercept = np.empty([nBootstrap, sampling_size])
+    scatter = np.empty([nBootstrap, nbins])
+    slope = np.empty([nBootstrap, nbins])
+    intercept = np.empty([nBootstrap, nbins])
 
     if verbose:
         iterations_list = tqdm(range(nBootstrap))
@@ -361,7 +362,7 @@ def Plot_Fit_Params(df, xlabel, ylabel, xrange = None, nBootstrap = 100, samplin
         # yline is not needed for plotting in this module so it's a 'dummy' variable
         xline, yline, intercept[iBoot, :], slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy,
                                                                                        xrange = xrange,
-                                                                                       nbins = sampling_size)
+                                                                                       nbins = nbins)
     if xlog: xline = 10**xline
 
     p = ax[0].plot(xline, np.mean(slope, axis=0), lw=3, color = color)
@@ -391,8 +392,8 @@ def Plot_Fit_Params(df, xlabel, ylabel, xrange = None, nBootstrap = 100, samplin
     return output_Data, ax
 
 
-def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], split_mode = 'Data', xrange = None,
-                          nBootstrap = 100, sampling_size = 25, kernel_type = 'gaussian', kernel_width = 0.2,
+def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], split_mode = 'Data', nbins = 25,
+                          xrange = None, nBootstrap = 100, kernel_type = 'gaussian', kernel_width = 0.2,
                           xlog = False, percentile = [16., 84.], color = None, labels = [], verbose=True, ax=None):
 
     lm = kllr_model(kernel_type, kernel_width)
@@ -449,9 +450,9 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], spli
         elif split_mode == 'Residuals':
             split_Mask = (split_res <= split_bins[i + 1]) & (split_res > split_bins[i])
 
-        scatter = np.empty([nBootstrap, sampling_size])
-        slope = np.empty([nBootstrap, sampling_size])
-        intercept = np.empty([nBootstrap, sampling_size])
+        scatter = np.empty([nBootstrap, nbins])
+        slope = np.empty([nBootstrap, nbins])
+        intercept = np.empty([nBootstrap, nbins])
 
         if verbose:
             iterations_list = tqdm(range(nBootstrap))
@@ -469,7 +470,7 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], spli
                 yy = y_data[split_Mask][index]
 
             xline, yline, intercept[iBoot, :], \
-               slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy, xrange = xrange, nbins = sampling_size)
+               slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy, xrange = xrange, nbins = nbins)
 
         if split_mode == 'Data':
             label = r'$%0.2f < %s < %0.2f$'%(split_bins[i], labels[2], split_bins[i + 1])
@@ -510,9 +511,10 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], spli
     return output_Data, ax
 
 
-def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, xrange = None, nBootstrap = 100, Output_mode = 'Covariance',
-                         sampling_size = 25, kernel_type = 'gaussian', kernel_width = 0.2, percentile = [16., 84.],
-                         xlog = False, labels = [], color = None, verbose=True, ax = None):
+def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, nbins = 25, xrange = None, nBootstrap = 100,
+                         Output_mode = 'Covariance', kernel_type = 'gaussian', kernel_width = 0.2,
+                         percentile = [16., 84.], xlog = False, labels = [], color = None,
+                         verbose=True, ax = None):
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -590,7 +592,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, xrange = None, nBootstrap = 100, O
 
             x_data, y_data, z_data = x_data[mask], y_data[mask], z_data[mask]
 
-            xline = np.linspace(xrange[0], xrange[1], sampling_size)
+            xline = np.linspace(xrange[0], xrange[1], nbins)
             xline = (xline[1:] + xline[:-1]) / 2.
 
             cov_corr = np.zeros([nBootstrap, len(xline)])
@@ -647,7 +649,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, xrange = None, nBootstrap = 100, O
 
 
 def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = [], Output_mode = 'Covariance',
-                               split_mode = 'Data', xrange = None, nBootstrap = 100, sampling_size = 25,
+                               split_mode = 'Data', nbins = 25, xrange = None, nBootstrap = 100,
                                kernel_type = 'gaussian', kernel_width = 0.2, xlog = False, percentile = [16., 84.],
                                labels = [], color = None, verbose=True, ax = None):
 
@@ -762,7 +764,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
                 elif split_mode == 'Residuals':
                     split_Mask = (split_res < split_bins[k + 1]) & (split_res > split_bins[k])
 
-                xline = np.linspace(xrange[0], xrange[1], sampling_size)
+                xline = np.linspace(xrange[0], xrange[1], nbins)
                 xline = (xline[1:] + xline[:-1]) / 2.
 
                 cov_corr = np.zeros([nBootstrap, len(xline)])
