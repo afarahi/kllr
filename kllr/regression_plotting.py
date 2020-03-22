@@ -167,7 +167,7 @@ def Plot_Fit(df, xlabel, ylabel, nbins = 25, xrange = None, show_data = False,
     if xlog: plt.xscale('log')
     if ylog: plt.yscale('log')
 
-    if len(labels) < 3:
+    if len(labels) != 2:
         labels = [xlabel, ylabel]
         # Ensure labels are romanized in tex format if just using label names
         labels = [r'\rm' + item for item in labels]
@@ -256,12 +256,12 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins = [], nbins = 25,
 
         # Mask dataset based on raw value or residuals to select only halos in this bin
         if split_mode == 'Data':
-            split_Mask = (split_data <= split_bins[i + 1]) & (split_data > split_bins[i])
+            split_mask = (split_data <= split_bins[i + 1]) & (split_data > split_bins[i])
         elif split_mode == 'Residuals':
-            split_Mask = (split_res < split_bins[i + 1]) & (split_res > split_bins[i])
+            split_mask = (split_res < split_bins[i + 1]) & (split_res > split_bins[i])
 
         # Run LLR using JUST the subset
-        x, y = lm.fit(x_data[split_Mask], y_data[split_Mask], xrange = xrange)[0:2]
+        x, y = lm.fit(x_data[split_mask], y_data[split_mask], xrange = xrange)[0:2]
 
         # Format label depending on Data or Residuals mode
         if split_mode == 'Data':
@@ -446,9 +446,9 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], spli
     for i in range(len(split_bins) - 1):
 
         if split_mode == 'Data':
-            split_Mask = (split_data <= split_bins[i + 1]) & (split_data > split_bins[i])
+            split_mask = (split_data <= split_bins[i + 1]) & (split_data > split_bins[i])
         elif split_mode == 'Residuals':
-            split_Mask = (split_res <= split_bins[i + 1]) & (split_res > split_bins[i])
+            split_mask = (split_res <= split_bins[i + 1]) & (split_res > split_bins[i])
 
         scatter = np.empty([nBootstrap, nbins])
         slope = np.empty([nBootstrap, nbins])
@@ -463,11 +463,11 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins = [], spli
 
             # First bootstrap realization is always just raw data
             if iBoot == 0:
-                xx, yy = x_data[split_Mask], y_data[split_Mask]
+                xx, yy = x_data[split_mask], y_data[split_mask]
             # All other bootstraps have shuffled data
             else:
-                xx, index = lm.subsample(x_data[split_Mask])
-                yy = y_data[split_Mask][index]
+                xx, index = lm.subsample(x_data[split_mask])
+                yy = y_data[split_mask][index]
 
             xline, yline, intercept[iBoot, :], \
                slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy, xrange = xrange, nbins = nbins)
@@ -760,9 +760,9 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
             for k in range(len(split_bins) - 1):
 
                 if split_mode == 'Data':
-                    split_Mask = (split_data <= split_bins[k + 1]) & (split_data > split_bins[k])
+                    split_mask = (split_data <= split_bins[k + 1]) & (split_data > split_bins[k])
                 elif split_mode == 'Residuals':
-                    split_Mask = (split_res < split_bins[k + 1]) & (split_res > split_bins[k])
+                    split_mask = (split_res < split_bins[k + 1]) & (split_res > split_bins[k])
 
                 xline = np.linspace(xrange[0], xrange[1], nbins)
                 xline = (xline[1:] + xline[:-1]) / 2.
@@ -773,13 +773,13 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins = []
 
                     # First bootstrap realization is always just raw data
                     if iBoot == 0:
-                        xx, yy, zz = x_data[split_Mask], y_data[split_Mask], z_data[split_Mask]
+                        xx, yy, zz = x_data[split_mask], y_data[split_mask], z_data[split_mask]
 
                     # All other bootstraps have shuffled data
                     else:
                         xx, index = lm.subsample(x_data[split_Mask])
-                        yy = y_data[split_Mask][index]
-                        zz = z_data[split_Mask][index]
+                        yy = y_data[split_mask][index]
+                        zz = z_data[split_mask][index]
 
                     for l in range(len(xline)):
 
@@ -948,13 +948,13 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins = [], split_
     for i in range(len(split_bins) - 1):
 
         if split_mode == 'Data':
-            split_Mask = (split_data < split_bins[i + 1]) & (split_data > split_bins[i])
+            split_mask = (split_data < split_bins[i + 1]) & (split_data > split_bins[i])
         elif split_mode == 'Residuals':
-            split_Mask = (split_res < split_bins[i + 1]) & (split_res > split_bins[i])
+            split_mask = (split_res < split_bins[i + 1]) & (split_res > split_bins[i])
 
-        output_Data['Bin' + str(i)]['Residuals'] = dy[split_Mask]
+        output_Data['Bin' + str(i)]['Residuals'] = dy[split_mask]
 
-        PDFs, bins, output = lm.PDF_generator(dy[split_Mask], nbins, nBootstrap, funcs,
+        PDFs, bins, output = lm.PDF_generator(dy[split_mask], nbins, nBootstrap, funcs,
                                               xrange = PDFrange, density = True, verbose = verbose)
 
         for r in results:
