@@ -11,6 +11,7 @@ authors:
   - name: Dhayaa Anbajagane
     affiliation: 2
   - name: August E. Evrard
+    orcid: 0000-0002-4876-956X
     affiliation: 2
 affiliations:
  - name: Michigan Institute for Data Science, University of Michigan, Ann Arbor, MI 48109, USA
