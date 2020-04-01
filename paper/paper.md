@@ -51,7 +51,7 @@ informative data summary and visualizations. The `KLLR` package is indexed by Py
 Index (PyPI) and can be installed through `pip install`.
 
 This package is designed and implemented with applications in data analysis of astronomical 
-datasets in mind, but its applications is not limited to astronomy domain. 
+datasets in mind, but its applications is not limited to astronomy domain.  
 
 
 # Use cases
