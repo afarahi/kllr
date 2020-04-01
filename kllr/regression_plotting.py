@@ -228,7 +228,7 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins=[], nbins=25, xra
                    show_data=False, split_mode='Data', kernel_type='gaussian', kernel_width=0.2,
                    xlog=False, ylog=False, color=None, labels=None, ax=None):
 
-    check_attributes(split_bins=split_bins)
+    check_attributes(split_bins=split_bins, split_mode=split_mode)
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -409,7 +409,7 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins=[], split_
                           xrange=None, nBootstrap=100, kernel_type='gaussian', kernel_width=0.2,
                           xlog=False, percentile=[16., 84.], color=None, labels=None, verbose=True, ax=None):
 
-    check_attributes(split_bins=split_bins)
+    check_attributes(split_bins=split_bins, split_mode=split_mode)
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -673,7 +673,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                                kernel_type='gaussian', kernel_width=0.2, xlog=False, percentile=[16., 84.],
                                labels=None, color=None, verbose=True, ax=None):
 
-    check_attributes(split_bins=split_bins, Output_mode=Output_mode)
+    check_attributes(split_bins=split_bins, Output_mode=Output_mode, split_mode=split_mode)
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -925,7 +925,7 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
                         PDFrange=(-4, 4), nBootstrap=1000, kernel_type='gaussian', kernel_width=0.2,
                         percentile=[16., 84.], labels=None, funcs={}, color=None, verbose=True, ax=None):
 
-    check_attributes(split_bins=split_bins)
+    check_attributes(split_bins=split_bins, split_mode=split_mode)
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -1011,7 +1011,7 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
     return output_Data, ax
 
 
-def check_attributes(split_bins=10, Output_mode='corr'):
+def check_attributes(split_bins=10, Output_mode='corr', split_mode='Data'):
 
     if not isinstance(split_bins, int) and not isinstance(split_bins, (np.ndarray, list, tuple)):
         raise TypeError("split_bins must be an integer number or a list of float numbers, "
@@ -1023,4 +1023,8 @@ def check_attributes(split_bins=10, Output_mode='corr'):
 
     if Output_mode.lower() not in ['correlation', 'corr', 'covariance', 'cov']:
         raise ValueError("Output_mode must be in ['correlation', 'corr', 'covariance', 'cov']. The passed "
-                         "Output_mode is %s."%Output_mode)
+                         "Output_mode is `%s`."%Output_mode)
+
+    if split_mode.lower() not in ['residuals', 'data']:
+        raise ValueError("split_mode must be in ['Residuals', 'Data']. The passed "
+                         "split_mode is `%s`."%split_mode)
