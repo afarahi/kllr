@@ -9,8 +9,8 @@ authors:
     orcid: 0000-0003-0777-4618
     affiliation: 1
   - name: Dhayaa Anbajagane
-    affiliation: 2
     orcid: 0000-0003-3312-909X
+    affiliation: 2
   - name: August E. Evrard
     orcid: 0000-0002-4876-956X
     affiliation: 2
