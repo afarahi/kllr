@@ -214,6 +214,11 @@ def Plot_Fit(df, xlabel, ylabel, nbins=25, xrange=None, show_data=False,
     # We don't use it since the uncertainty is very small in our case (not visible actually)
 
     if show_data:
+
+        #Generate Mask so raw data is shown only for values of x_data within xrange
+        Mask = (x_data > xrange[0]) & (x_data < xrange[1])
+        x_data, y_data = x_data[Mask], y_data[Mask]
+
         if xlog: x_data = 10 ** x_data
         if ylog: y_data = 10 ** y_data
         plt.scatter(x_data, y_data, s=30, alpha=0.3, c=color, label="")
