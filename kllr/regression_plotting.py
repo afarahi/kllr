@@ -216,7 +216,12 @@ def Plot_Fit(df, xlabel, ylabel, nbins=25, xrange=None, show_data=False,
     if show_data:
 
         #Generate Mask so raw data is shown only for values of x_data within xrange
-        Mask = (x_data > xrange[0]) & (x_data < xrange[1])
+        if xrange == None:
+            #If no xrange inputted, mask selected all available data
+            Mask = np.ones(x_data.size, bool)
+        else:
+            Mask = (x_data > xrange[0]) & (x_data < xrange[1])
+
         x_data, y_data = x_data[Mask], y_data[Mask]
 
         if xlog: x_data = 10 ** x_data
@@ -395,13 +400,13 @@ def Plot_Fit_Params(df, xlabel, ylabel, nbins=25, xrange=None, nBootstrap=100,
     output_Data['x'] = xline
 
     output_Data['slope'] = np.median(slope, axis=0)
-    output_Data['slope+'] = np.percentile(slope, percentile[0], axis=0)
-    output_Data['slope-'] = np.percentile(slope, percentile[1], axis=0)
+    output_Data['slope-'] = np.percentile(slope, percentile[0], axis=0)
+    output_Data['slope+'] = np.percentile(slope, percentile[1], axis=0)
 
     # Output data for scatter (in ln terms)
     output_Data['scatter'] = np.median(scatter, axis=0) * Ln10
-    output_Data['scatter+'] = np.percentile(scatter, percentile[0], axis=0) * Ln10
-    output_Data['scatter-'] = np.percentile(scatter, percentile[1], axis=0) * Ln10
+    output_Data['scatter-'] = np.percentile(scatter, percentile[0], axis=0) * Ln10
+    output_Data['scatter+'] = np.percentile(scatter, percentile[1], axis=0) * Ln10
 
     ax[1].set_xlabel(labels[0], size=fontsize.xlabel)
     ax[0].set_ylabel(r"$\alpha\,$(%s)" % labels[1], size=fontsize.ylabel)
@@ -509,13 +514,13 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins=[], split_
 
         # Output data for slope
         output_Data['Bin' + str(i)]['slope'] = np.median(slope, axis=0)
-        output_Data['Bin' + str(i)]['slope+'] = np.percentile(slope, percentile[0], axis=0)
-        output_Data['Bin' + str(i)]['slope-'] = np.percentile(slope, percentile[1], axis=0)
+        output_Data['Bin' + str(i)]['slope-'] = np.percentile(slope, percentile[0], axis=0)
+        output_Data['Bin' + str(i)]['slope+'] = np.percentile(slope, percentile[1], axis=0)
 
         # Output data for scatter (in ln terms)
         output_Data['Bin' + str(i)]['scatter'] = np.median(scatter, axis=0) * Ln10
-        output_Data['Bin' + str(i)]['scatter+'] = np.percentile(scatter, percentile[0], axis=0) * Ln10
-        output_Data['Bin' + str(i)]['scatter-'] = np.percentile(scatter, percentile[1], axis=0) * Ln10
+        output_Data['Bin' + str(i)]['scatter-'] = np.percentile(scatter, percentile[0], axis=0) * Ln10
+        output_Data['Bin' + str(i)]['scatter+'] = np.percentile(scatter, percentile[1], axis=0) * Ln10
 
     ax[1].set_xlabel(labels[0], size=fontsize.xlabel)
     ax[0].set_ylabel(r"$\alpha\,$(%s)" % labels[1], size=fontsize.ylabel)
@@ -910,9 +915,9 @@ def Plot_Residual(df, xlabel, ylabel, nbins=15, xrange=None, PDFrange=(-4, 4), n
         max = np.percentile(output[r], percentile[1])
         print(r, ":", np.round(min - mean, 4), np.round(mean, 4), np.round(max - mean, 4))
 
-        output_Data[r + '+'] = np.percentile(output[r], percentile[0])
+        output_Data[r + '-'] = np.percentile(output[r], percentile[0])
         output_Data[r] = np.median(output[r])
-        output_Data[r + '-'] = np.percentile(output[r], percentile[1])
+        output_Data[r + '+'] = np.percentile(output[r], percentile[1])
 
     p = plt.plot(bins, np.mean(PDFs, axis=0), lw=3, color=color)
     color = p[0].get_color()
@@ -996,9 +1001,9 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
             max = np.percentile(output[r], percentile[1])
             print(r, ":", np.round(min - mean, 4), np.round(mean, 4), np.round(max - mean, 4))
 
-            output_Data['Bin' + str(i)][r + '+'] = np.percentile(output[r], percentile[0])
+            output_Data['Bin' + str(i)][r + '-'] = np.percentile(output[r], percentile[0])
             output_Data['Bin' + str(i)][r] = np.median(output[r])
-            output_Data['Bin' + str(i)][r + '-'] = np.percentile(output[r], percentile[1])
+            output_Data['Bin' + str(i)][r + '+'] = np.percentile(output[r], percentile[1])
 
         if split_mode == 'Data':
             label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])
