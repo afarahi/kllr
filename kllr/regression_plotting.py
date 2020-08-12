@@ -128,7 +128,7 @@ Matplotlib.axes
 '''
 
 # constant (set it to np.log(10.0) if you wish to go from dex to fractional error in scatter)
-Ln10 = 1.0  # np.log(10.0)
+Ln10 = 1.0
 
 def setup_color(color, split_bins, cmap=None):
     """
@@ -962,6 +962,9 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
 
     x_data, y_data, split_data = x_data[mask], y_data[mask], split_data[mask]
 
+    if xrange is None:
+        xrange = [np.min(x_data) - 0.001, np.max(x_data) + 0.001]
+
     # Choose bin edges for binning data
     if isinstance(split_bins, int):
         if split_mode == 'Data':
@@ -982,13 +985,18 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
     # the PDFs of each split_bin
     dy = lm.calculate_residual(x_data, y_data, xrange=xrange)
 
+    #Generate mask so only objects within xrange are used in PDF
+    #Need this to make sure dy and split_data are the same length
+    xrange_mask = (x_data < xrange[1]) & (x_data > xrange[0])
+
     # Separately plot the PDF of data in each bin
     for i in range(len(split_bins) - 1):
 
         if split_mode == 'Data':
-            split_mask = (split_data < split_bins[i + 1]) & (split_data > split_bins[i])
+            split_mask = (split_data[xrange_mask] < split_bins[i + 1]) & (split_data[xrange_mask] > split_bins[i])
+
         elif split_mode == 'Residuals':
-            split_mask = (split_res < split_bins[i + 1]) & (split_res > split_bins[i])
+            split_mask = (split_res[xrange_mask] < split_bins[i + 1]) & (split_res[xrange_mask] > split_bins[i])
 
         output_Data['Bin' + str(i)]['Residuals'] = dy[split_mask]
 
