@@ -96,6 +96,49 @@ def scatter_cal(x, y, slope, intercept, dof=None, weight=None):
 
     return np.sqrt(sig2)
 
+def multivariate_scatter_cal(X, y, slopes, intercept, dof=None, weight=None):
+    """
+    This function computes the scatter about the mean relation, but for
+    multivariate linear regression.
+
+    Parameters
+    ----------
+    X : numpy array
+        Independent variable data vector. Can have multiple features
+
+    y : numpy array
+        Dependent variable data vector.
+
+    slope : numpy array
+        1D array of the slopes of the regression model.
+        Each entry is the slope of a particular feature.
+
+    intercept : float
+        Intercept of the regression model.
+
+    dof : int, optional
+        Degree of freedom if known otherwise dof = len(x)
+
+    weight : numpy array, optional
+        Individual weights for each sample. If None it assume a uniform weight.
+
+
+    Returns
+    -------
+    float
+        The standard deviation of residuals about the mean relation
+
+    """
+
+    if dof is None:
+        dof = len(X)
+
+    if weight is None:
+        sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2) / dof
+    else:
+        sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2, weights = weight)
+
+    return np.sqrt(sig2)
 
 def calculate_weigth(x, kernel_type='gaussian', mu=0, width=0.2):
     """
@@ -240,6 +283,51 @@ class kllr_model():
 
         sig = scatter_cal(x, y, slope, intercept, weight=weight)
         return intercept, slope, sig
+
+    def multivariate_linear_regression(self, X, y, weight=None):
+        """
+        This function performs a multivariate linear regression given a set of weights and
+        returns the normalization, slope, and scatter about the mean relation. The weights
+        are applied to only the first feature, i.e. X[:, 0].
+
+        Parameters
+        ----------
+        X : numpy array
+            Independent variable data vector. Can have multiple features.
+
+        y : numpy array
+            Dependent variable data vector. This version only support a one dimensional data vector.
+
+        weight : float, optional
+            Individual weights for each sample. If none it assumes a uniform weight.
+
+        Returns
+        -------
+        float
+             intercept
+
+        float
+             slope
+
+        float
+             scatter about the mean relation
+        """
+
+        #if X is 1D then raise error
+        if len(X.shape) != 2:
+            raise ValueError("Incompatible dimension for X."
+                             "X should be two dimensional numpy array.")
+
+        # Initialize regressor
+        regr = linear_model.LinearRegression()
+
+        # Train the model using the training sets
+        regr.fit(X, y, sample_weight=weight)
+        slopes = regr.coef_
+        intercept = regr.intercept_
+
+        sig = multivariate_scatter_cal(X, y, slopes, intercept, weight=weight)
+        return intercept, slopes, sig
 
     def subsample(self, x, length=False):
         """
@@ -626,3 +714,91 @@ class kllr_model():
             yline_exp[i] = slope_exp[i] * xline[i] + intercept_exp[i]
 
         return xline, yline_exp, intercept_exp, slope_exp, scatter_exp
+
+    def multivariate_fit(self, X, y, xrange=None, nbins=25, kernel_type=None, kernel_width=None):
+        """
+        This function computes the local regression parameters at the points within xrange.
+        This version support supports multidimensional data for the independent data matrix, X.
+        However the kernel weighting uses only the first column in X, i.e. X[:, 0].
+        The predicted variable, y, must still be 1D.
+
+        Parameters
+        ----------
+        X : numpy array (n_rows, n_features)
+            Independent variable data matrix.
+            The weighting is only applied to the first feature.
+
+        y : numpy array (n_rows)
+            Dependent variable data vector. Must be a one dimensional data vector.
+
+        xrange : list, optional
+            The first element is the min and the second element is the max,
+            If None, it sets xrange to [min(x), max(x)]
+
+        nbins : int, optional
+            The numbers of data points to compute the local regression parameters
+
+        kernel_type : string, optional
+            The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
+            If None it uses the pre-specified `kernel_type`
+
+        kernel_width : float, optional
+            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
+            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
+            If None it uses the pre-specified `kernel_width`.
+
+        Returns
+        -------
+        numpy-array
+            The local points.
+
+        numpy-array
+            The mean value at the local points
+
+        numpy-array
+            The intercept at the local points
+
+        numpy-array
+            The slope w.r.t each input feature,
+            at the local points.
+
+        numpy-array
+            The scatter around mean relation
+        """
+
+        # Define x_values to compute regression parameters at
+        # Only use first feature in independent variable matrix
+        if xrange == None:
+            xrange = (np.min(X[:, 0]), np.max(X[:, 0]))
+        elif xrange[0] == None:
+            xrange[0] = np.min(X[:, 0])
+        elif xrange[1] == None:
+            xrange[1] = np.max(X[:, 0])
+
+        xline = np.linspace(xrange[0], xrange[1], nbins, endpoint=True)
+
+        if kernel_width is not None:
+            self.kernel_width = kernel_width
+
+        if kernel_type is not None:
+            self.kernel_type = kernel_type
+
+        # Generate array to store output from fit
+        slope_exp, intercept_exp, scatter_exp = (np.zeros(shape=(xline.size, X.shape[1])),
+                                                 np.zeros(xline.size), np.zeros(xline.size))
+
+        # loop over every sample point
+        for i in range(xline.size):
+
+            # Generate weights at that sample point
+            w = calculate_weigth(X[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+
+            # Compute fit params using multivariate linear regression
+            intercept_exp[i], slope_exp[i, :], scatter_exp[i] = self.multivariate_linear_regression(X, y, weight=w)
+
+            # Doesn't seem clear on what it means to
+            # compute mean relation just as a function
+            # of M200c even though we regress on all properties
+            # so I don't give expected <y | x_0> here (eg. x_0 --> M200c)
+
+        return xline, slope_exp, scatter_exp
