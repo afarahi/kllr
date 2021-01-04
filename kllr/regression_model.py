@@ -84,7 +84,7 @@ def scatter_cal(x, y, slope, intercept, dof=None, weight=None):
     if x.shape[0] != y.shape[0]:
         raise ValueError(
             "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
-            ": X.shape[1] = %i while Y.shape[1] = %i." % (x.shape[0], y.shape[0]))
+            ": X.shape[0] = %i while Y.shape[0] = %i." % (x.shape[0], y.shape[0]))
 
     if dof is None:
         dof = len(x)
@@ -129,6 +129,21 @@ def multivariate_scatter_cal(X, y, slopes, intercept, dof=None, weight=None):
         The standard deviation of residuals about the mean relation
 
     """
+
+    if len(X.shape) != 2:
+        raise ValueError(
+            "Incompatible dimension for X. X should be a one dimensional numpy array,"
+            ": len(X.shape) = %i." %len(X.shape))
+
+    if len(y.shape) != 1:
+        raise ValueError(
+            "Incompatible dimension for Y. Y should be a one dimensional numpy array,"
+            ": len(Y.shape) = %i." %len(Y.shape))
+
+    if X.shape[0] != y.shape[0]:
+        raise ValueError(
+            "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
+            ": X.shape[0] = %i while Y.shape[0] = %i." % (X.shape[0], y.shape[0]))
 
     if dof is None:
         dof = len(X)
@@ -313,7 +328,7 @@ class kllr_model():
              scatter about the mean relation
         """
 
-        #if X is 1D then raise error
+        #if X is not 2D then raise error
         if len(X.shape) != 2:
             raise ValueError("Incompatible dimension for X."
                              "X should be two dimensional numpy array.")
@@ -751,9 +766,6 @@ class kllr_model():
         -------
         numpy-array
             The local points.
-
-        numpy-array
-            The mean value at the local points
 
         numpy-array
             The intercept at the local points
