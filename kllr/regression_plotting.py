@@ -385,15 +385,15 @@ def Plot_Fit_Params(df, xlabel, ylabel, nbins=25, xrange=None, nBootstrap=100,
         # yline is not needed for plotting in this module so it's a 'dummy' variable
         xline, yline, intercept[iBoot, :], slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy,
                                                                                        xrange=xrange,
-                                                                                       nbins=nbins)
+                                                                                       nbins=nbins)[0:5]
     if xlog: xline = 10 ** xline
 
-    p = ax[0].plot(xline, np.mean(slope, axis=0), lw=3, color=color)
+    p = ax[0].plot(xline, np.median(slope, axis=0), lw=3, color=color)
     color = p[0].get_color()
-    ax[0].fill_between(xline, np.percentile(slope, 16, axis=0), np.percentile(slope, 84, axis=0),
+    ax[0].fill_between(xline, np.percentile(slope, percentile[0], axis=0), np.percentile(slope, percentile[1], axis=0),
                        alpha=0.4, label=None, color=color)
-    ax[1].plot(xline, np.mean(scatter, axis=0) * Ln10, lw=3, color=color)
-    ax[1].fill_between(xline, np.percentile(scatter, 16, axis=0) * Ln10, np.percentile(scatter, 84, axis=0) * Ln10,
+    ax[1].plot(xline, np.median(scatter, axis=0) * Ln10, lw=3, color=color)
+    ax[1].fill_between(xline, np.percentile(scatter, percentile[0], axis=0) * Ln10, np.percentile(scatter, percentile[1], axis=0) * Ln10,
                        alpha=0.4, label=None, color=color)
 
     # Output Data
@@ -489,7 +489,7 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins=[], split_
                 yy = y_data[split_mask][index]
 
             xline, yline, intercept[iBoot, :], \
-            slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy, xrange=xrange, nbins=nbins)
+            slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy, xrange=xrange, nbins=nbins)[0:5]
 
         if split_mode == 'Data':
             label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])
@@ -499,7 +499,9 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins=[], split_
         if xlog: xline = 10 ** xline
 
         ax[0].plot(xline, np.median(slope, axis=0), lw=3, label=label, color=color[i])
-        ax[0].fill_between(xline, np.percentile(slope, 16, axis=0), np.percentile(slope, 84, axis=0),
+        ax[0].fill_between(xline,
+                           np.percentile(slope, percentile[0], axis=0),
+                           np.percentile(slope, percentile[1], axis=0),
                            alpha=0.4, label=None, color=color[i])
 
         # Divide scatter by log10(e) to get it in ln terms (not log10 terms)
@@ -530,6 +532,178 @@ def Plot_Fit_Params_Split(df, xlabel, ylabel, split_label, split_bins=[], split_
     return output_Data, ax
 
 
+def Plot_Skewness(df, xlabel, ylabel, nbins=25, xrange=None, nBootstrap=100,
+                  kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.],
+                  xlog=False, labels=None, color=None, verbose=True, ax=None):
+
+    lm = kllr_model(kernel_type, kernel_width)
+
+    if ax is None:
+        fig = plt.figure(figsize=(12, 8))
+
+    # Set x_scale to log. Leave y_scale as is.
+    if xlog:
+        plt.xscale('log')
+
+    plt.grid()
+
+    if labels is None:
+        labels = [xlabel, ylabel]
+
+    # Dictionary to store output values
+    output_Data = {}
+
+    # Load and mask data
+    x_data, y_data = np.array(df[xlabel]), np.array(df[ylabel])
+
+    mask = np.invert(np.isinf(x_data) | np.isneginf(x_data)) & np.invert(np.isinf(y_data) | np.isneginf(y_data))
+
+    x_data, y_data = x_data[mask], y_data[mask]
+
+    # Generate new arrays to store params in for each Bootstrap realization
+    skew = np.empty([nBootstrap, nbins])
+
+    if verbose:
+        iterations_list = tqdm(range(nBootstrap))
+    else:
+        iterations_list = range(nBootstrap)
+
+    for iBoot in iterations_list:
+
+        # First bootstrap realization is always just raw data
+        if iBoot == 0:
+            xx, yy = x_data, y_data
+        # All other bootstraps have shuffled data
+        else:
+            xx, index = lm.subsample(x_data)
+            yy = y_data[index]
+
+        # xline is always the same regardless of bootstrap so don't need 2D array for it.
+        # yline, slope, and scatter are not needed for plotting in this module
+        function_output       = lm.fit(xx, yy, xrange=xrange, nbins=nbins)
+        xline, skew[iBoot, :] = function_output[0], function_output[5]
+
+    if xlog: xline = 10 ** xline
+
+    p = plt.plot(xline, np.median(skew, axis=0), lw=3, color=color)
+    color = p[0].get_color()
+    plt.fill_between(xline,
+                     np.percentile(skew, percentile[0], axis=0),
+                     np.percentile(skew, percentile[1], axis=0),
+                     alpha=0.4, label=None, color=color)
+
+    # Output Data
+    output_Data['x'] = xline
+
+    output_Data['skew']  = np.median(skew, axis=0)
+    output_Data['skew-'] = np.percentile(skew, percentile[0], axis=0)
+    output_Data['skew+'] = np.percentile(skew, percentile[1], axis=0)
+
+    plt.xlabel(labels[0], size=fontsize.xlabel)
+    plt.ylabel(r"$\gamma\,$(%s)" % labels[1], size=fontsize.ylabel)
+
+    return output_Data, ax
+
+
+def Plot_Skewness_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mode='Data', nbins=25,
+                        xrange=None, nBootstrap=100, kernel_type='gaussian', kernel_width=0.2,
+                        xlog=False, percentile=[16., 84.], color=None, labels=None, verbose=True, ax=None):
+
+    check_attributes(split_bins=split_bins, split_mode=split_mode)
+
+    lm = kllr_model(kernel_type, kernel_width)
+
+    if ax is None:
+        fig = plt.figure(figsize=(12, 8))
+
+    # Set x_scale to log. Leave y_scale as is.
+    if xlog:
+        plt.xscale('log')
+
+    plt.grid()
+
+    color = setup_color(color, split_bins, cmap=None)
+
+    if labels is None:
+        labels = [xlabel, ylabel, split_label]
+
+    # Load data and mask it
+    x_data, y_data, split_data = np.array(df[xlabel]), np.array(df[ylabel]), np.array(df[split_label])
+
+    mask = np.invert(np.isinf(x_data)) & np.invert(np.isinf(y_data)) & np.invert(np.isinf(split_data))
+
+    x_data, y_data, split_data = x_data[mask], y_data[mask], split_data[mask]
+
+    # Choose bin edges for binning data
+    if (isinstance(split_bins, int)):
+        if split_mode == 'Data':
+            split_bins = [np.percentile(split_data, float(i / split_bins) * 100) for i in range(0, split_bins + 1)]
+        elif split_mode == 'Residuals':
+            split_res = lm.calculate_residual(x_data, split_data, xrange=xrange)
+            split_bins = [np.percentile(split_res, float(i / split_bins) * 100) for i in range(0, split_bins + 1)]
+
+    # Need to compute residuals if split_mode == 'Residuals' is chosen
+    elif isinstance(split_bins, (np.ndarray, list, tuple)) & (split_mode == 'Residuals'):
+        split_res = lm.calculate_residual(x_data, split_data, xrange=xrange)
+
+    # Define Output_Data variable to store all computed data that is then plotted
+    output_Data = {'Bin' + str(i): {} for i in range(len(split_bins) - 1)}
+
+    for i in range(len(split_bins) - 1):
+
+        if split_mode == 'Data':
+            split_mask = (split_data <= split_bins[i + 1]) & (split_data > split_bins[i])
+        elif split_mode == 'Residuals':
+            split_mask = (split_res <= split_bins[i + 1]) & (split_res > split_bins[i])
+
+        skew = np.empty([nBootstrap, nbins])
+
+        if verbose:
+            iterations_list = tqdm(range(nBootstrap))
+        else:
+            iterations_list = range(nBootstrap)
+
+        for iBoot in iterations_list:
+
+            # First bootstrap realization is always just raw data
+            if iBoot == 0:
+                xx, yy = x_data[split_mask], y_data[split_mask]
+            # All other bootstraps have shuffled data
+            else:
+                xx, index = lm.subsample(x_data[split_mask])
+                yy = y_data[split_mask][index]
+
+            function_output       = lm.fit(xx, yy, xrange=xrange, nbins=nbins)
+            xline, skew[iBoot, :] = function_output[0], function_output[5] 
+
+        if split_mode == 'Data':
+            label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])
+        elif split_mode == 'Residuals':
+            label = r'$%0.2f < {\rm res}($%s$) < %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])
+
+        if xlog: xline = 10 ** xline
+
+        plt.plot(xline, np.median(skew, axis=0), lw=3, label=label, color=color[i])
+        plt.fill_between(xline,
+                         np.percentile(skew, percentile[0], axis=0),
+                         np.percentile(skew, percentile[1], axis=0),
+                         alpha=0.4, label=None, color=color[i])
+
+        # Output xvals
+        output_Data['Bin' + str(i)]['x'] = xline
+
+        # Output data for slope
+        output_Data['Bin' + str(i)]['skew']  = np.median(skew, axis=0)
+        output_Data['Bin' + str(i)]['skew-'] = np.percentile(skew, percentile[0], axis=0)
+        output_Data['Bin' + str(i)]['skew+'] = np.percentile(skew, percentile[1], axis=0)
+
+    plt.xlabel(labels[0], size=fontsize.xlabel)
+    plt.ylabel(r"$\gamma\,$(%s)" % labels[1], size=fontsize.ylabel)
+    plt.legend(fontsize=fontsize.legend)
+
+    return output_Data, ax
+
+
 def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, nbins=25, xrange=None, nBootstrap=100,
                          Output_mode='Covariance', kernel_type='gaussian', kernel_width=0.2,
                          percentile=[16., 84.], xlog=False, labels=None, color=None,
@@ -538,6 +712,9 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, nbins=25, xrange=None, nBootstrap=
     check_attributes(Output_mode=Output_mode)
 
     lm = kllr_model(kernel_type, kernel_width)
+
+    #Dictionary to store values
+    output_Data = {}
 
     # size of matrix
     if Output_mode.lower() in ['covariance', 'cov']:
@@ -609,7 +786,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, nbins=25, xrange=None, nBootstrap=
             x_data, y_data, z_data = x_data[mask], y_data[mask], z_data[mask]
 
             xline = np.linspace(xrange[0], xrange[1], nbins)
-            xline = (xline[1:] + xline[:-1]) / 2.
+            # xline = (xline[1:] + xline[:-1]) / 2.
 
             cov_corr = np.zeros([nBootstrap, len(xline)])
 
@@ -632,6 +809,18 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, nbins=25, xrange=None, nBootstrap=
                     elif Output_mode.lower() in ['correlation', 'corr']:
                         cov_corr[iBoot, k] = lm.calc_correlation_fixed_x(xx, yy, zz, xline[k])
 
+
+            output_Data['x'] = xline
+
+            if Output_mode.lower() in ['covariance', 'cov']:
+                name = 'cov'
+            elif Output_mode.lower() in ['correlation', 'corr']:
+                name = 'corr'
+
+            output_Data['%s_%s_%s'%(name, ylabel, zlabel)]  = np.median(cov_corr, axis=0)
+            output_Data['%s_%s_%s-'%(name, ylabel, zlabel)] = np.percentile(cov_corr, percentile[0], axis=0)
+            output_Data['%s_%s_%s+'%(name, ylabel, zlabel)] = np.percentile(cov_corr, percentile[1], axis=0)
+
             if matrix_size > 1:
                 ax_tmp = ax[row, col]
             else:
@@ -642,7 +831,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, nbins=25, xrange=None, nBootstrap=
 
             if xlog: xline = 10 ** (xline)
 
-            p = ax_tmp.plot(xline, np.mean(cov_corr, axis=0), lw=3, color=color)
+            p = ax_tmp.plot(xline, np.median(cov_corr, axis=0), lw=3, color=color)
             color = p[0].get_color()
             ax_tmp.fill_between(xline, np.percentile(cov_corr, percentile[0], axis=0),
                                 np.percentile(cov_corr, percentile[1], axis=0), alpha=0.4, label=None, color=color)
@@ -675,7 +864,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, nbins=25, xrange=None, nBootstrap=
     if Output_mode.lower() in ['correlation', 'corr']: plt.subplots_adjust(hspace=0.04, wspace=0.04)
     else: plt.subplots_adjust(hspace=0.04)
 
-    return ax
+    return output_Data, ax
 
 
 def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], Output_mode='Covariance',
@@ -795,7 +984,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                     split_mask = (split_res < split_bins[k + 1]) & (split_res > split_bins[k])
 
                 xline = np.linspace(xrange[0], xrange[1], nbins)
-                xline = (xline[1:] + xline[:-1]) / 2.
+                # xline = (xline[1:] + xline[:-1]) / 2.
 
                 cov_corr = np.zeros([nBootstrap, len(xline)])
 
@@ -828,7 +1017,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                     ax_tmp.set_xscale('log')
 
                 ax_tmp.axis('on')
-                ax_tmp.plot(xline, np.mean(cov_corr, axis=0), lw=3, color=color[k], label=label)
+                ax_tmp.plot(xline, np.median(cov_corr, axis=0), lw=3, color=color[k], label=label)
                 ax_tmp.fill_between(xline,
                                     np.percentile(cov_corr, percentile[0], axis=0),
                                     np.percentile(cov_corr, percentile[1], axis=0),
@@ -910,16 +1099,16 @@ def Plot_Residual(df, xlabel, ylabel, nbins=15, xrange=None, PDFrange=(-4, 4), n
     PDFs, bins, output = lm.PDF_generator(dy, nbins, nBootstrap, funcs, xrange=PDFrange, density=True, verbose=verbose)
 
     for r in results:
-        min = np.percentile(output[r], percentile[0])
-        mean = np.mean(output[r])
-        max = np.percentile(output[r], percentile[1])
+        min  = np.percentile(output[r], percentile[0])
+        mean = np.median(output[r])
+        max  = np.percentile(output[r], percentile[1])
         print(r, ":", np.round(min - mean, 4), np.round(mean, 4), np.round(max - mean, 4))
 
         output_Data[r + '-'] = np.percentile(output[r], percentile[0])
         output_Data[r] = np.median(output[r])
         output_Data[r + '+'] = np.percentile(output[r], percentile[1])
 
-    p = plt.plot(bins, np.mean(PDFs, axis=0), lw=3, color=color)
+    p = plt.plot(bins, np.median(PDFs, axis=0), lw=3, color=color)
     color = p[0].get_color()
     plt.fill_between(bins, np.percentile(PDFs, percentile[0], axis=0), np.percentile(PDFs, percentile[1], axis=0),
                      alpha=0.4, label=None, color=color)
@@ -1004,9 +1193,9 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
                                               xrange=PDFrange, density=True, verbose=verbose)
 
         for r in results:
-            min = np.percentile(output[r], percentile[0])
-            mean = np.mean(output[r])
-            max = np.percentile(output[r], percentile[1])
+            min  = np.percentile(output[r], percentile[0])
+            mean = np.median(output[r])
+            max  = np.percentile(output[r], percentile[1])
             print(r, ":", np.round(min - mean, 4), np.round(mean, 4), np.round(max - mean, 4))
 
             output_Data['Bin' + str(i)][r + '-'] = np.percentile(output[r], percentile[0])
@@ -1018,7 +1207,7 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
         elif split_mode == 'Residuals':
             label = r'$%0.2f < {\rm res}($%s$) < %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])
 
-        plt.plot(bins, np.mean(PDFs, axis=0), lw=3, color=color[i], label=label)
+        plt.plot(bins, np.median(PDFs, axis=0), lw=3, color=color[i], label=label)
         plt.fill_between(bins, np.percentile(PDFs, percentile[0], axis=0), np.percentile(PDFs, percentile[1], axis=0),
                          alpha=0.4, label=None, color=color[i])
 
@@ -1036,7 +1225,7 @@ def check_attributes(split_bins=10, Output_mode='corr', split_mode='Data'):
                         "split_bins is type '%s' "%type(split_bins))
     elif isinstance(split_bins, int) and split_bins < 2:
         raise ValueError('split_bins must be an integer number larger than 1, split_bins is %i'%split_bins)
-    elif isinstance(split_bins, int) and split_bins < 2:
+    elif isinstance(split_bins, (np.ndarray, list, tuple)) and len(split_bins) <= 1:
         raise ValueError('len(split_bins) must be larger than 1, len(split_bins) is %i'%len(split_bins))
 
     if Output_mode.lower() not in ['correlation', 'corr', 'covariance', 'cov']:

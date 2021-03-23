@@ -155,6 +155,127 @@ def multivariate_scatter_cal(X, y, slopes, intercept, dof=None, weight=None):
 
     return np.sqrt(sig2)
 
+def skewness_cal(x, y, slope, intercept, dof=None, weight=None):
+    """
+    This function computes the skewness about the mean relation.
+
+    Parameters
+    ----------
+    x : numpy array
+        Independent variable data vector.
+
+    y : numpy array
+        Dependent variable data vector.
+
+    slope : float
+        Slope of the regression model.
+
+    intercept : float
+        Intercept of the regression model.
+
+    dof : int, optional
+        Degree of freedom if known otherwise dof = len(x)
+
+    weight : numpy array, optional
+        Individual weights for each sample. If None it assume a uniform weight.
+
+
+    Returns
+    -------
+    float
+        The skewness of residuals about the mean relation
+
+    """
+
+    if len(x.shape) > 1 or len(y.shape) > 1:
+        raise ValueError(
+            "Incompatible dimension for X and Y. X and Y should be one dimensional numpy array,"
+            ": len(X.shape) = %i while len(Y.shape) = %i." % (len(x.shape), len(y.shape)))
+
+    if x.shape[0] != y.shape[0]:
+        raise ValueError(
+            "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
+            ": X.shape[0] = %i while Y.shape[0] = %i." % (x.shape[0], y.shape[0]))
+
+    if dof is None:
+        dof = len(x)
+
+    if weight is None:
+        m2 = sum((np.array(y) - (slope * np.array(x) + intercept)) ** 2) / dof
+        m3 = sum((np.array(y) - (slope * np.array(x) + intercept)) ** 3) / dof
+
+    else:
+        m2 = np.average((np.array(y) - (slope * np.array(x) + intercept)) ** 2, weights=weight)
+        m3 = np.average((np.array(y) - (slope * np.array(x) + intercept)) ** 3, weights=weight)
+
+    skew = m3/m2**(3/2)
+
+    return skew
+
+def multivariate_skewness_cal(X, y, slopes, intercept, dof=None, weight=None):
+    """
+    This function computes the skewness about the mean relation, but for
+    multivariate linear regression.
+
+    Parameters
+    ----------
+    X : numpy array
+        Independent variable data vector. Can have multiple features
+
+    y : numpy array
+        Dependent variable data vector.
+
+    slope : numpy array
+        1D array of the slopes of the regression model.
+        Each entry is the slope of a particular feature.
+
+    intercept : float
+        Intercept of the regression model.
+
+    dof : int, optional
+        Degree of freedom if known otherwise dof = len(x)
+
+    weight : numpy array, optional
+        Individual weights for each sample. If None it assume a uniform weight.
+
+
+    Returns
+    -------
+    float
+        The standard deviation of residuals about the mean relation
+
+    """
+
+    if len(X.shape) != 2:
+        raise ValueError(
+            "Incompatible dimension for X. X should be a one dimensional numpy array,"
+            ": len(X.shape) = %i." %len(X.shape))
+
+    if len(y.shape) != 1:
+        raise ValueError(
+            "Incompatible dimension for Y. Y should be a one dimensional numpy array,"
+            ": len(Y.shape) = %i." %len(Y.shape))
+
+    if X.shape[0] != y.shape[0]:
+        raise ValueError(
+            "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
+            ": X.shape[0] = %i while Y.shape[0] = %i." % (X.shape[0], y.shape[0]))
+
+    if dof is None:
+        dof = len(X)
+
+    if weight is None:
+        m2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2) / dof
+        m3 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 3) / dof
+
+    else:
+        m2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2, weights=weight)
+        m3 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 3, weights=weight)
+
+    skew = m3/m2**(3/2)
+
+    return skew
+
 def calculate_weigth(x, kernel_type='gaussian', mu=0, width=0.2):
     """
     According to the provided kernel, this function computes the weight assigned to each data point.
@@ -202,7 +323,6 @@ def calculate_weigth(x, kernel_type='gaussian', mu=0, width=0.2):
         w = np.ones(len(x))
 
     return w
-
 
 class kllr_model():
     """
@@ -296,8 +416,10 @@ class kllr_model():
             slope = regr.coef_[0]
             intercept = regr.intercept_
 
-        sig = scatter_cal(x, y, slope, intercept, weight=weight)
-        return intercept, slope, sig
+        sig  = scatter_cal(x,  y, slope, intercept, weight=weight)
+        skew = skewness_cal(x, y, slope, intercept, weight=weight)
+
+        return intercept, slope, sig, skew
 
     def multivariate_linear_regression(self, X, y, weight=None):
         """
@@ -341,8 +463,10 @@ class kllr_model():
         slopes = regr.coef_
         intercept = regr.intercept_
 
-        sig = multivariate_scatter_cal(X, y, slopes, intercept, weight=weight)
-        return intercept, slopes, sig
+        sig  = multivariate_scatter_cal(X,  y, slopes, intercept, weight=weight)
+        skew = multivariate_skewness_cal(X, y, slopes, intercept, weight=weight)
+
+        return intercept, slopes, sig, skew
 
     def subsample(self, x, length=False):
         """
@@ -411,10 +535,10 @@ class kllr_model():
 
         weight = calculate_weigth(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
 
-        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)
+        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)[0:3]
         dy = data_y - slope * data_x - intercept
 
-        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)
+        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)[0:3]
         dz = data_z - slope * data_x - intercept
 
         sig = np.cov(dy, dz, aweights=weight)
@@ -462,10 +586,10 @@ class kllr_model():
 
         weight = calculate_weigth(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
 
-        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)
+        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)[0:3]
         dy = data_y - slope * data_x - intercept
 
-        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)
+        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)[0:3]
         dz = data_z - slope * data_x - intercept
 
         sig = np.cov(dy, dz, aweights=weight)
@@ -530,9 +654,9 @@ class kllr_model():
             w2 = calculate_weigth(x, kernel_type=self.kernel_type, mu=xline[i + 1], width=self.kernel_width)
 
             # Compute expected y-value at each bin-edge
-            intercept1, slope1, scatter1 = self.linear_regression(x, y, weight=w1)
+            intercept1, slope1, scatter1 = self.linear_regression(x, y, weight=w1)[0:3]
             yline1 = slope1 * xline[i] + intercept1
-            intercept2, slope2, scatter2 = self.linear_regression(x, y, weight=w2)
+            intercept2, slope2, scatter2 = self.linear_regression(x, y, weight=w2)[0:3]
             yline2 = slope2 * xline[i + 1] + intercept2
 
             # Compute slope in this bin
@@ -716,19 +840,19 @@ class kllr_model():
             self.kernel_type = kernel_type
 
         # Generate array to store output from fit
-        yline_exp, slope_exp, intercept_exp, scatter_exp = np.zeros(len(xline)), np.zeros(len(xline)), np.zeros(
-            len(xline)), np.zeros(len(xline))
+        yline_exp, slope_exp, intercept_exp, scatter_exp, skew_exp = [np.zeros(xline.size)
+                                                                      for i in range(5)]
 
         # loop over every sample point
         for i in range(len(xline)):
             # Generate weights at that sample point
             w = calculate_weigth(x, kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
             # Compute fit params using linear regressions
-            intercept_exp[i], slope_exp[i], scatter_exp[i] = self.linear_regression(x, y, weight=w)
+            intercept_exp[i], slope_exp[i], scatter_exp[i], skew_exp[i] = self.linear_regression(x, y, weight=w)
             # Generate expected y_value using fit params
             yline_exp[i] = slope_exp[i] * xline[i] + intercept_exp[i]
 
-        return xline, yline_exp, intercept_exp, slope_exp, scatter_exp
+        return xline, yline_exp, intercept_exp, slope_exp, scatter_exp, skew_exp
 
     def multivariate_fit(self, X, y, xrange=None, nbins=25, kernel_type=None, kernel_width=None):
         """
@@ -796,8 +920,9 @@ class kllr_model():
             self.kernel_type = kernel_type
 
         # Generate array to store output from fit
-        slope_exp, intercept_exp, scatter_exp = (np.zeros(shape=(xline.size, X.shape[1])),
-                                                 np.zeros(xline.size), np.zeros(xline.size))
+        slope_exp = np.zeros(shape=(xline.size, X.shape[1]))
+
+        intercept_exp, scatter_exp, skew_exp = [np.zeros(xline.size) for i in range(3)]
 
         # loop over every sample point
         for i in range(xline.size):
@@ -806,11 +931,11 @@ class kllr_model():
             w = calculate_weigth(X[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
 
             # Compute fit params using multivariate linear regression
-            intercept_exp[i], slope_exp[i, :], scatter_exp[i] = self.multivariate_linear_regression(X, y, weight=w)
+            intercept_exp[i], slope_exp[i, :], scatter_exp[i], skew_exp[i] = self.multivariate_linear_regression(X, y, weight=w)
 
             # Doesn't seem clear on what it means to
             # compute mean relation just as a function
             # of M200c even though we regress on all properties
             # so I don't give expected <y | x_0> here (eg. x_0 --> M200c)
 
-        return xline, slope_exp, scatter_exp
+        return xline, slope_exp, scatter_exp, skew_exp
