@@ -173,7 +173,7 @@ def setup_color(color, split_bins, cmap=None):
     return color
 
 
-def Plot_Fit(df, xlabel, ylabel, nbins=25, xrange=None, show_data=False,
+def Plot_Fit(df, xlabel, ylabel, y_err = None, nbins=25, xrange=None, show_data=False,
              kernel_type='gaussian', kernel_width=0.2, xlog=False, ylog=False,
              color=None, labels=None, ax=None):
 
@@ -198,7 +198,16 @@ def Plot_Fit(df, xlabel, ylabel, nbins=25, xrange=None, show_data=False,
 
     x_data, y_data = x_data[mask], y_data[mask]
 
-    x, y = lm.fit(x_data, y_data, xrange=xrange, nbins=nbins)[0:2]
+    if isinstance(y_err, str):
+        y_err_data = np.array(df[y_err])[mask]
+
+    elif isinstance(y_err, (np.ndarray, list, tuple)):
+        y_err_data = np.asarray(y_err)[mask]
+
+    else:
+        y_err_data = None
+
+    x, y = lm.fit(x_data, y_data, y_err_data, xrange, nbins)[0:2]
 
     if xlog: x = 10 ** x
     if ylog: y = 10 ** y
@@ -216,7 +225,7 @@ def Plot_Fit(df, xlabel, ylabel, nbins=25, xrange=None, show_data=False,
     if show_data:
 
         #Generate Mask so raw data is shown only for values of x_data within xrange
-        if xrange == None:
+        if xrange is None:
             #If no xrange inputted, mask selected all available data
             Mask = np.ones(x_data.size, bool)
         else:
@@ -298,8 +307,8 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins=[], nbins=25, xra
         if ylog: y = 10 ** y
 
         # Add black line first beneath actual line to enhance visibility
-        plt.plot(x, y, lw=6, c='k', label="")
-        plt.plot(x, y, lw=3, c=color[i], label=label)
+        plt.plot(x, y, lw=6, color='k', label="")
+        plt.plot(x, y, lw=3, color=color[i], label=label)
 
         # Store data to be outputted later
         output_Data['Bin' + str(i)]['x'] = x
@@ -330,7 +339,7 @@ def Plot_Fit_Split(df, xlabel, ylabel, split_label, split_bins=[], nbins=25, xra
     return output_Data, ax
 
 
-def Plot_Fit_Params(df, xlabel, ylabel, nbins=25, xrange=None, nBootstrap=100,
+def Plot_Fit_Params(df, xlabel, ylabel, y_err = None, nbins=25, xrange=None, nBootstrap=100,
                     kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.],
                     xlog=False, labels=None, color=None, verbose=True, ax=None):
 
@@ -361,6 +370,15 @@ def Plot_Fit_Params(df, xlabel, ylabel, nbins=25, xrange=None, nBootstrap=100,
 
     x_data, y_data = x_data[mask], y_data[mask]
 
+    if isinstance(y_err, str):
+        y_err_data = np.array(df[y_err])[mask]
+
+    elif isinstance(y_err, (np.ndarray, list, tuple)):
+        y_err_data = np.asarray(y_err)[mask]
+
+    else:
+        yy_err = None #Need this when doing bootstrapping.
+
     # Generate new arrays to store params in for each Bootstrap realization
     scatter = np.empty([nBootstrap, nbins])
     slope = np.empty([nBootstrap, nbins])
@@ -376,16 +394,19 @@ def Plot_Fit_Params(df, xlabel, ylabel, nbins=25, xrange=None, nBootstrap=100,
         # First bootstrap realization is always just raw data
         if iBoot == 0:
             xx, yy = x_data, y_data
+
+            if y_err is not None: yy_err = y_err_data
         # All other bootstraps have shuffled data
         else:
             xx, index = lm.subsample(x_data)
             yy = y_data[index]
+            if y_err is not None: yy_err = y_err_data[index]
 
         # xline is always the same regardless of bootstrap so don't need 2D array for it.
         # yline is not needed for plotting in this module so it's a 'dummy' variable
-        xline, yline, intercept[iBoot, :], slope[iBoot, :], scatter[iBoot, :] = lm.fit(xx, yy,
-                                                                                       xrange=xrange,
-                                                                                       nbins=nbins)[0:5]
+        output = lm.fit(xx, yy, yy_err, xrange, nbins)[0:5]
+        xline, yline, intercept[iBoot, :], slope[iBoot, :], scatter[iBoot, :] = output
+
     if xlog: xline = 10 ** xline
 
     p = ax[0].plot(xline, np.median(slope, axis=0), lw=3, color=color)
@@ -674,7 +695,7 @@ def Plot_Skewness_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
                 yy = y_data[split_mask][index]
 
             function_output       = lm.fit(xx, yy, xrange=xrange, nbins=nbins)
-            xline, skew[iBoot, :] = function_output[0], function_output[5] 
+            xline, skew[iBoot, :] = function_output[0], function_output[5]
 
         if split_mode == 'Data':
             label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])

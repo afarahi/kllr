@@ -43,63 +43,9 @@ from tqdm import tqdm
 from scipy import stats
 from sklearn import linear_model, mixture
 
-
-def scatter_cal(x, y, slope, intercept, dof=None, weight=None):
+def scatter_cal(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     """
-    This function computes the scatter about the mean relation.
-
-    Parameters
-    ----------
-    x : numpy array
-        Independent variable data vector.
-
-    y : numpy array
-        Dependent variable data vector.
-
-    slope : float
-        Slope of the regression model.
-
-    intercept : float
-        Intercept of the regression model.
-
-    dof : int, optional
-        Degree of freedom if known otherwise dof = len(x)
-
-    weight : numpy array, optional
-        Individual weights for each sample. If None it assume a uniform weight.
-
-
-    Returns
-    -------
-    float
-        The standard deviation of residuals about the mean relation
-
-    """
-
-    if len(x.shape) > 1 or len(y.shape) > 1:
-        raise ValueError(
-            "Incompatible dimension for X and Y. X and Y should be one dimensional numpy array,"
-            ": len(X.shape) = %i while len(Y.shape) = %i." % (len(x.shape), len(y.shape)))
-
-    if x.shape[0] != y.shape[0]:
-        raise ValueError(
-            "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
-            ": X.shape[0] = %i while Y.shape[0] = %i." % (x.shape[0], y.shape[0]))
-
-    if dof is None:
-        dof = len(x)
-
-    if weight is None:
-        sig2 = sum((np.array(y) - (slope * np.array(x) + intercept)) ** 2) / dof
-    else:
-        sig2 = np.average((np.array(y) - (slope * np.array(x) + intercept)) ** 2, weights=weight)
-
-    return np.sqrt(sig2)
-
-def multivariate_scatter_cal(X, y, slopes, intercept, dof=None, weight=None):
-    """
-    This function computes the scatter about the mean relation, but for
-    multivariate linear regression.
+    This function computes the scatter about the mean relation
 
     Parameters
     ----------
@@ -116,23 +62,43 @@ def multivariate_scatter_cal(X, y, slopes, intercept, dof=None, weight=None):
     intercept : float
         Intercept of the regression model.
 
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
     dof : int, optional
         Degree of freedom if known otherwise dof = len(x)
 
     weight : numpy array, optional
-        Individual weights for each sample. If None it assume a uniform weight.
+        Individual weights for each sample. If None then all
+        datapoints are weighted equally.
 
 
     Returns
     -------
     float
-        The standard deviation of residuals about the mean relation
+        The standard deviation of residuals about the mean relation.
+
+        If y_err is provided, then the output is a corrected standard
+        deviation, scatter_true = \sqrt(\sum res^2 - y_err^2), where
+        res are the residuals about the mean relation, and the sum is
+        implicitly weighted by the input weights, w.
+
+        If y_err is larger than the residuals on average,
+        then the sum is negative and scatter_true is not defined.
+        In this case we raise a warning and output the value of the sum,
+        without taking a square root, i.e. scatter_true^2
 
     """
 
-    if len(X.shape) != 2:
+    #If X is provided as a 1D array then convert to
+    #2d array with shape (N, 1)
+    if len(X.shape) == 1: X = X[:, None]
+
+    if len(X.shape) > 2:
         raise ValueError(
-            "Incompatible dimension for X. X should be a one dimensional numpy array,"
+            "Incompatible dimension for X. X should be a two dimensional numpy array,"
             ": len(X.shape) = %i." %len(X.shape))
 
     if len(y.shape) != 1:
@@ -145,74 +111,48 @@ def multivariate_scatter_cal(X, y, slopes, intercept, dof=None, weight=None):
             "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
             ": X.shape[0] = %i while Y.shape[0] = %i." % (X.shape[0], y.shape[0]))
 
+    if isinstance(y_err, (np.ndarray, list, tuple)):
+
+        y_err = np.asarray(y_err)
+
+        if (y_err <= 0).any():
+            raise ValueError(
+                "Input y_err contains either zeros or negative values.",
+                "It should contain only positive values.")
+
+    #Make sure slopes is an 1D array
+    slopes = np.atleast_1d(slopes)
+
+    if len(slopes.shape) > 1:
+        raise ValueError(
+            "Incompatible dimension for slopes. It should be a one dimensional numpy array,"
+            ": len(slopes.shape) = %i." %len(slopes.shape))
+
     if dof is None:
         dof = len(X)
 
-    if weight is None:
-        sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2) / dof
+    if y_err is None:
+        if weight is None:
+            sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2) / dof
+        else:
+            sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2, weights = weight)
     else:
-        sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2, weights = weight)
+        if weight is None:
+            sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2) / dof
+        else:
+            sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2, weights = weight/y_err)
 
-    return np.sqrt(sig2)
+    if sig2 <= 0:
 
-def skewness_cal(x, y, slope, intercept, dof=None, weight=None):
-    """
-    This function computes the skewness about the mean relation.
+        print("The uncertainty, y_err, is larger than the instrinsic scatter.\n\
+               The corrected variance, var_true = var_obs - y_err^2, is negative.")
 
-    Parameters
-    ----------
-    x : numpy array
-        Independent variable data vector.
-
-    y : numpy array
-        Dependent variable data vector.
-
-    slope : float
-        Slope of the regression model.
-
-    intercept : float
-        Intercept of the regression model.
-
-    dof : int, optional
-        Degree of freedom if known otherwise dof = len(x)
-
-    weight : numpy array, optional
-        Individual weights for each sample. If None it assume a uniform weight.
-
-
-    Returns
-    -------
-    float
-        The skewness of residuals about the mean relation
-
-    """
-
-    if len(x.shape) > 1 or len(y.shape) > 1:
-        raise ValueError(
-            "Incompatible dimension for X and Y. X and Y should be one dimensional numpy array,"
-            ": len(X.shape) = %i while len(Y.shape) = %i." % (len(x.shape), len(y.shape)))
-
-    if x.shape[0] != y.shape[0]:
-        raise ValueError(
-            "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
-            ": X.shape[0] = %i while Y.shape[0] = %i." % (x.shape[0], y.shape[0]))
-
-    if dof is None:
-        dof = len(x)
-
-    if weight is None:
-        m2 = sum((np.array(y) - (slope * np.array(x) + intercept)) ** 2) / dof
-        m3 = sum((np.array(y) - (slope * np.array(x) + intercept)) ** 3) / dof
+        return sig2
 
     else:
-        m2 = np.average((np.array(y) - (slope * np.array(x) + intercept)) ** 2, weights=weight)
-        m3 = np.average((np.array(y) - (slope * np.array(x) + intercept)) ** 3, weights=weight)
+        return np.sqrt(sig2)
 
-    skew = m3/m2**(3/2)
-
-    return skew
-
-def multivariate_skewness_cal(X, y, slopes, intercept, dof=None, weight=None):
+def skewness_cal(X, y, slopes, intercept, dof=None, weight=None):
     """
     This function computes the skewness about the mean relation, but for
     multivariate linear regression.
@@ -246,9 +186,13 @@ def multivariate_skewness_cal(X, y, slopes, intercept, dof=None, weight=None):
 
     """
 
-    if len(X.shape) != 2:
+    #If X is provided as a 1D array then convert to
+    #2d array with shape (N, 1)
+    if len(X.shape) == 1: X = X[:, None]
+
+    if len(X.shape) > 2:
         raise ValueError(
-            "Incompatible dimension for X. X should be a one dimensional numpy array,"
+            "Incompatible dimension for X. X should be a two dimensional numpy array,"
             ": len(X.shape) = %i." %len(X.shape))
 
     if len(y.shape) != 1:
@@ -260,6 +204,14 @@ def multivariate_skewness_cal(X, y, slopes, intercept, dof=None, weight=None):
         raise ValueError(
             "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
             ": X.shape[0] = %i while Y.shape[0] = %i." % (X.shape[0], y.shape[0]))
+
+    #Make sure slopes is an 1D array
+    slopes = np.atleast_1d(slopes)
+
+    if len(slopes.shape) > 1:
+        raise ValueError(
+            "Incompatible dimension for slopes. It should be a one dimensional numpy array,"
+            ": len(slopes.shape) = %i." %len(slopes.shape))
 
     if dof is None:
         dof = len(X)
@@ -379,7 +331,7 @@ class kllr_model():
         self.kernel_type = kernel_type
         self.kernel_width = kernel_width
 
-    def linear_regression(self, x, y, weight=None):
+    def linear_regression(self, x, y, y_err = None, weight=None):
         """
         This function perform a linear regression given a set of weights and return the normalization, slope, and
         scatter about the mean relation.
@@ -391,6 +343,11 @@ class kllr_model():
 
         y : numpy array
             Dependent variable data vector. This version only support a one dimensional data vector.
+
+        y_err : numpy array, optional
+            Uncertainty on dependent variable, y.
+            Must contain only non-zero positive values.
+            Default is None.
 
         weight : float, optional
             Individual weights for each sample. If none it assumes a uniform weight.
@@ -412,16 +369,21 @@ class kllr_model():
         else:
             regr = linear_model.LinearRegression()
             # Train the model using the training sets
-            regr.fit(x[:, np.newaxis], y, sample_weight=weight)
+
+            if y_err is None:
+                regr.fit(x[:, np.newaxis], y, sample_weight=weight)
+            else:
+                regr.fit(x[:, np.newaxis], y, sample_weight=weight/y_err)
+
             slope = regr.coef_[0]
             intercept = regr.intercept_
 
-        sig  = scatter_cal(x,  y, slope, intercept, weight=weight)
+        sig  = scatter_cal(x,  y, slope, intercept, y_err, weight=weight)
         skew = skewness_cal(x, y, slope, intercept, weight=weight)
 
         return intercept, slope, sig, skew
 
-    def multivariate_linear_regression(self, X, y, weight=None):
+    def multivariate_linear_regression(self, X, y, y_err = None, weight=None):
         """
         This function performs a multivariate linear regression given a set of weights and
         returns the normalization, slope, and scatter about the mean relation. The weights
@@ -459,12 +421,16 @@ class kllr_model():
         regr = linear_model.LinearRegression()
 
         # Train the model using the training sets
-        regr.fit(X, y, sample_weight=weight)
+        if y_err is None:
+            regr.fit(X, y, sample_weight=weight)
+        else:
+            regr.fit(X, y, sample_weight=weight/y_err)
+
         slopes = regr.coef_
         intercept = regr.intercept_
 
-        sig  = multivariate_scatter_cal(X,  y, slopes, intercept, weight=weight)
-        skew = multivariate_skewness_cal(X, y, slopes, intercept, weight=weight)
+        sig  = scatter_cal(X,  y, slopes, intercept, weight=weight)
+        skew = skewness_cal(X, y, slopes, intercept, weight=weight)
 
         return intercept, slopes, sig, skew
 
@@ -781,7 +747,7 @@ class kllr_model():
 
         return PDFs, bins, Output
 
-    def fit(self, x, y, xrange=None, nbins=25, kernel_type=None, kernel_width=None):
+    def fit(self, x, y, y_err = None, xrange=None, nbins=25, kernel_type=None, kernel_width=None):
         """
         This function computes the local regression parameters at the points within xrange.
 
@@ -792,6 +758,11 @@ class kllr_model():
 
         y : numpy array
             Dependent variable data vector. This version only support a one dimensional data vector.
+
+        y_err : numpy array, optional
+            Uncertainty on dependent variable, y.
+            Must contain only non-zero positive values.
+            Default is None.
 
         xrange : list, optional
             The first element is the min and the second element is the max,
@@ -848,13 +819,13 @@ class kllr_model():
             # Generate weights at that sample point
             w = calculate_weigth(x, kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
             # Compute fit params using linear regressions
-            intercept_exp[i], slope_exp[i], scatter_exp[i], skew_exp[i] = self.linear_regression(x, y, weight=w)
+            intercept_exp[i], slope_exp[i], scatter_exp[i], skew_exp[i] = self.linear_regression(x, y, y_err, weight=w)
             # Generate expected y_value using fit params
             yline_exp[i] = slope_exp[i] * xline[i] + intercept_exp[i]
 
         return xline, yline_exp, intercept_exp, slope_exp, scatter_exp, skew_exp
 
-    def multivariate_fit(self, X, y, xrange=None, nbins=25, kernel_type=None, kernel_width=None):
+    def multivariate_fit(self, X, y, y_err = None, xrange=None, nbins=25, kernel_type=None, kernel_width=None):
         """
         This function computes the local regression parameters at the points within xrange.
         This version support supports multidimensional data for the independent data matrix, X.
@@ -869,6 +840,11 @@ class kllr_model():
 
         y : numpy array (n_rows)
             Dependent variable data vector. Must be a one dimensional data vector.
+
+        y_err : numpy array (n_rows), optional
+            Uncertainty on dependent variable, y.
+            Must contain only non-zero positive values.
+            Default is None.
 
         xrange : list, optional
             The first element is the min and the second element is the max,
@@ -904,11 +880,11 @@ class kllr_model():
 
         # Define x_values to compute regression parameters at
         # Only use first feature in independent variable matrix
-        if xrange == None:
+        if xrange is None:
             xrange = (np.min(X[:, 0]), np.max(X[:, 0]))
-        elif xrange[0] == None:
+        elif xrange[0] is None:
             xrange[0] = np.min(X[:, 0])
-        elif xrange[1] == None:
+        elif xrange[1] is None:
             xrange[1] = np.max(X[:, 0])
 
         xline = np.linspace(xrange[0], xrange[1], nbins, endpoint=True)
