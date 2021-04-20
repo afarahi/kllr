@@ -31,7 +31,7 @@ An example for using KLLR looks like this:
     |    from kllr import kllr_model                                       |
     |                                                                      |
     |    lm = kllr_model(kernel_type = 'gaussian', kernel_width = 0.2)     |
-    |    xrange, yrange_mean, intercept, slope, scatter =                  |
+    |    xrange, yrange_mean, intercept, slope, scatter, skew, kurt =      |
     |             lm.fit(x, y, nbins=11)                                   |
     |                                                                      |
     ------------------------------------------------------------------------
@@ -40,10 +40,9 @@ An example for using KLLR looks like this:
 
 import numpy as np
 from tqdm import tqdm
-from scipy import stats
-from sklearn import linear_model, mixture
+from sklearn import linear_model
 
-def scatter_cal(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
+def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     """
     This function computes the scatter about the mean relation
 
@@ -104,7 +103,7 @@ def scatter_cal(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     if len(y.shape) != 1:
         raise ValueError(
             "Incompatible dimension for Y. Y should be a one dimensional numpy array,"
-            ": len(Y.shape) = %i." %len(Y.shape))
+            ": len(Y.shape) = %i." %len(y.shape))
 
     if X.shape[0] != y.shape[0]:
         raise ValueError(
@@ -116,9 +115,8 @@ def scatter_cal(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
         y_err = np.asarray(y_err)
 
         if (y_err <= 0).any():
-            raise ValueError(
-                "Input y_err contains either zeros or negative values.",
-                "It should contain only positive values.")
+            raise ValueError("Input y_err contains either zeros or negative values.",
+                             "It should contain only positive values.")
 
     #Make sure slopes is an 1D array
     slopes = np.atleast_1d(slopes)
@@ -132,38 +130,45 @@ def scatter_cal(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
         dof = len(X)
 
     if y_err is None:
-        if weight is None:
-            sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2) / dof
-        else:
-            sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2, weights = weight)
+        y_err = 0
     else:
-        if weight is None:
-            sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2) / dof
-        else:
-            sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2, weights = weight/y_err)
+        weight = weight/y_err
+
+    if weight is None:
+        sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2) / dof
+    else:
+        sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2, weights = weight)
 
     if sig2 <= 0:
 
-        print("The uncertainty, y_err, is larger than the instrinsic scatter.\n\
-               The corrected variance, var_true = var_obs - y_err^2, is negative.")
+        print("The uncertainty, y_err, is larger than the instrinsic scatter.",
+              "The corrected variance, var_true = var_obs - y_err^2, is negative.")
 
         return sig2
 
     else:
         return np.sqrt(sig2)
 
-def skewness_cal(X, y, slopes, intercept, dof=None, weight=None):
+def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     """
-    This function computes the skewness about the mean relation, but for
-    multivariate linear regression.
+    This function computes the local moments about the mean relation,
+    given some input weights.
 
     Parameters
     ----------
+    m : int, or list, tuple, numpy array of ints
+        Either one, or a set of, moments to be computed. Must be integers.
+
     X : numpy array
         Independent variable data vector. Can have multiple features
 
     y : numpy array
         Dependent variable data vector.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
 
     slope : numpy array
         1D array of the slopes of the regression model.
@@ -172,17 +177,25 @@ def skewness_cal(X, y, slopes, intercept, dof=None, weight=None):
     intercept : float
         Intercept of the regression model.
 
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None. Currently, using y_err changes
+        only the weighting scheme for the moments, and
+        does not involve any further corrections.
+
     dof : int, optional
         Degree of freedom if known otherwise dof = len(x)
 
     weight : numpy array, optional
-        Individual weights for each sample. If None it assume a uniform weight.
+        Individual weights for each sample. If None it assumes a uniform weight.
 
 
     Returns
     -------
-    float
-        The standard deviation of residuals about the mean relation
+    float, or numpy array
+        The weighted moments of the data. A single float if only one moment
+        was requested, and a numpy array if multiple were requested.
 
     """
 
@@ -213,22 +226,132 @@ def skewness_cal(X, y, slopes, intercept, dof=None, weight=None):
             "Incompatible dimension for slopes. It should be a one dimensional numpy array,"
             ": len(slopes.shape) = %i." %len(slopes.shape))
 
+    if isinstance(y_err, (np.ndarray, list, tuple)):
+
+        y_err = np.asarray(y_err)
+
+        if (y_err <= 0).any():
+            raise ValueError("Input y_err contains either zeros or negative values.",
+                             "It should contain only positive values.")
+
+
+    elif y_err is not None:
+
+        weight = weight/y_err
+
     if dof is None:
         dof = len(X)
 
-    if weight is None:
-        m2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2) / dof
-        m3 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 3) / dof
+    m      = np.atleast_1d(m).astype(int)
+    output = np.zeros(m.size)
+
+    residuals = np.array(y) - (np.dot(X, slopes) + intercept)
+    for i in range(output.size):
+
+        if weight is None:
+            output[i] = np.sum(residuals**m[i]) / dof
+
+        else:
+            output[i] = np.average(residuals**m[i], weights=weight)
+
+    if output.size == 1:
+        return output[0]
 
     else:
-        m2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2, weights=weight)
-        m3 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 3, weights=weight)
+        return output
+
+def skewness(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
+    """
+    This function computes the weighted skewness about the mean relation.
+    If weight = None, then this is the regular skewness.
+
+    Parameters
+    ----------
+    X : numpy array
+        Independent variable data vector. Can have multiple features
+
+    y : numpy array
+        Dependent variable data vector.
+
+    slope : numpy array
+        1D array of the slopes of the regression model.
+        Each entry is the slope of a particular feature.
+
+    intercept : float
+        Intercept of the regression model.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
+    dof : int, optional
+        Degree of freedom if known otherwise dof = len(x)
+
+    weight : numpy array, optional
+        Individual weights for each sample. If None it assume a uniform weight.
+
+
+    Returns
+    -------
+    float
+        The weighted skewness of the sample.
+        It is just the standard skewness if Weights = None.
+
+    """
+
+    m2, m3 = moments([2, 3], X, y, slopes, intercept, y_err, dof, weight)
 
     skew = m3/m2**(3/2)
 
     return skew
 
-def calculate_weigth(x, kernel_type='gaussian', mu=0, width=0.2):
+def kurtosis(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
+    """
+    This function computes the weighted kurtosis about the mean relation.
+    If weight = None, then this is the regular skewness.
+
+    Parameters
+    ----------
+    X : numpy array
+        Independent variable data vector. Can have multiple features
+
+    y : numpy array
+        Dependent variable data vector.
+
+    slope : numpy array
+        1D array of the slopes of the regression model.
+        Each entry is the slope of a particular feature.
+
+    intercept : float
+        Intercept of the regression model.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
+    dof : int, optional
+        Degree of freedom if known otherwise dof = len(x)
+
+    weight : numpy array, optional
+        Individual weights for each sample. If None it assume a uniform weight.
+
+
+    Returns
+    -------
+    float
+        The standard deviation of residuals about the mean relation
+
+    """
+
+    m2, m4 = moments([2, 4], X, y, slopes, intercept, y_err, dof, weight)
+
+    kurt = m4/m2**(3/2)
+
+    return kurt
+
+def calculate_weights(x, kernel_type='gaussian', mu=0, width=0.2):
     """
     According to the provided kernel, this function computes the weight assigned to each data point.
 
@@ -299,17 +422,17 @@ class kllr_model():
     subsample(x, length=False)
         generate a bootstrapped sample
 
-    calc_correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None)
+    correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None)
         compute the conditional correlation coefficient conditioned at point x
 
-    calc_covariance_fixed_x(x, y, xrange = None, nbins = 60, kernel_type = None, kernel_width = None)
+    covariance_fixed_x(x, y, xrange = None, nbins = 60, kernel_type = None, kernel_width = None)
         compute the conditional correlation coefficient conditioned at point x
 
-    calculate_residual(x, y, xrange = None, nbins = 60, kernel_type = None, kernel_width = None)
+    residuals(x, y, xrange = None, nbins = 60, kernel_type = None, kernel_width = None)
         compute residuls about the mean relation i.e., res = y - <y|X>
 
     PDF_generator(self, res, nbins, nBootstrap = 1000, funcs = {}, xrange = (-4, 4), verbose = True,  **kwargs)
-        generate a binned PDF of residuasl around the mean relation
+        generate a binned PDF of residuals around the mean relation
 
     fit(x, y, xrange = None, nbins = 25, kernel_type = None, kernel_width = None)
         fit a kernel localized linear relation to (x, y) pairs, i.e. <y | x> = a(y) x + b(y)
@@ -331,18 +454,20 @@ class kllr_model():
         self.kernel_type = kernel_type
         self.kernel_width = kernel_width
 
-    def linear_regression(self, x, y, y_err = None, weight=None):
+    def linear_regression(self, X, y, y_err = None, weight=None, compute_skewness = False, compute_kurtosis = False):
         """
-        This function perform a linear regression given a set of weights and return the normalization, slope, and
-        scatter about the mean relation.
+        This function perform a linear regression given a set of weights
+        and return the normalization, slope, and scatter about the mean relation.
+        Can also
 
         Parameters
         ----------
-        x : numpy array
-            Independent variable data vector. This version only support a one dimensional data vector.
+        X : numpy array
+            Independent variable data vector.
+            Can input multiple features
 
         y : numpy array
-            Dependent variable data vector. This version only support a one dimensional data vector.
+            Dependent variable data vector.
 
         y_err : numpy array, optional
             Uncertainty on dependent variable, y.
@@ -352,53 +477,13 @@ class kllr_model():
         weight : float, optional
             Individual weights for each sample. If none it assumes a uniform weight.
 
-        Returns
-        -------
-        float
-             intercept
+        compute_skewness : boolean, optional
+            If compute_skewness == True, the weighted skewness
+            is computed and returned in the output
 
-        float
-             slope
-
-        float
-             scatter about the mean relation
-        """
-
-        if weight is None:
-            slope, intercept, r_value, p_value = stats.linregress(x, y)[0:4]
-        else:
-            regr = linear_model.LinearRegression()
-            # Train the model using the training sets
-
-            if y_err is None:
-                regr.fit(x[:, np.newaxis], y, sample_weight=weight)
-            else:
-                regr.fit(x[:, np.newaxis], y, sample_weight=weight/y_err)
-
-            slope = regr.coef_[0]
-            intercept = regr.intercept_
-
-        sig  = scatter_cal(x,  y, slope, intercept, y_err, weight=weight)
-        skew = skewness_cal(x, y, slope, intercept, weight=weight)
-
-        return intercept, slope, sig, skew
-
-    def multivariate_linear_regression(self, X, y, y_err = None, weight=None):
-        """
-        This function performs a multivariate linear regression given a set of weights and
-        returns the normalization, slope, and scatter about the mean relation. The weights
-        are applied to only the first feature, i.e. X[:, 0].
-
-        Parameters
-        ----------
-        X : numpy array
-            Independent variable data vector. Can have multiple features.
-
-        y : numpy array
-            Dependent variable data vector. This version only support a one dimensional data vector.
-
-        weight : float, optional
-            Individual weights for each sample. If none it assumes a uniform weight.
+        compute_kurtosis : boolean, optional
+            If compute_kurtosis == True, the weighted kurtosis
+            is computed and returned in the output
 
         Returns
         -------
@@ -410,29 +495,69 @@ class kllr_model():
 
         float
              scatter about the mean relation
-        """
 
+        float
+             skewness about the mean relation.
+             Present only if compute_skewness = True and
+             is None if compute_skewness = False
+
+        float
+             kurtosis about the mean relation
+             Present only if compute_kurtosis = True and
+             is None if compute_kurtosis = False
+        """
         #if X is not 2D then raise error
-        if len(X.shape) != 2:
+        if len(X.shape) > 2:
             raise ValueError("Incompatible dimension for X."
-                             "X should be two dimensional numpy array.")
+                             "X must be a numpy array with atmost two dimensions.")
 
-        # Initialize regressor
+        elif len(X.shape) == 1:
+
+            X = X[:, None] #convert 1D to 2D array
+
+
+        if len(y.shape) != 1:
+            raise ValueError(
+                "Incompatible dimension for Y. Y should be a one dimensional numpy array,"
+                ": len(Y.shape) = %i." %len(y.shape))
+
+        if X.shape[0] != y.shape[0]:
+            raise ValueError(
+                "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
+                ": X.shape[0] = %i while Y.shape[0] = %i." % (X.shape[0], y.shape[0]))
+
+        # If y_err is an array/list, check that all values are positive
+        if isinstance(y_err, (np.ndarray, list, tuple)):
+
+            y_err = np.asarray(y_err)
+
+            if (y_err <= 0).any():
+                raise ValueError("Input y_err contains either zeros or negative values.",
+                                 "It should contain only positive values.")
+
         regr = linear_model.LinearRegression()
-
         # Train the model using the training sets
+
         if y_err is None:
             regr.fit(X, y, sample_weight=weight)
-        else:
+
+        elif (weight is not None) and (y_err is not None):
             regr.fit(X, y, sample_weight=weight/y_err)
+
+        elif (weight is None) and (y_err is not None):
+            regr.fit(X, y, sample_weight=1/y_err)
 
         slopes = regr.coef_
         intercept = regr.intercept_
 
-        sig  = scatter_cal(X,  y, slopes, intercept, weight=weight)
-        skew = skewness_cal(X, y, slopes, intercept, weight=weight)
+        sig  = scatter(X, y, slopes, intercept, y_err, weight=weight)
 
-        return intercept, slopes, sig, skew
+        skew, kurt = None, None #Set some default values
+
+        if compute_skewness:     skew = skewness(X, y, slopes, intercept, weight=weight)
+        if compute_kurtosis: kurt = kurtosis(X, y, slopes, intercept, weight=weight)
+
+        return intercept, slopes, sig, skew, kurt
 
     def subsample(self, x, length=False):
         """
@@ -460,7 +585,7 @@ class kllr_model():
         resample = np.floor(np.random.rand(l) * int(len(x))).astype(int)
         return x[resample], resample
 
-    def calc_correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type=None, kernel_width=None):
+    def correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type=None, kernel_width=None):
         """
         This function computes the conditional correlation between two variables data_y and data_z at point x.
 
@@ -499,7 +624,7 @@ class kllr_model():
         if kernel_width is not None:
             self.kernel_width = kernel_width
 
-        weight = calculate_weigth(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
+        weight = calculate_weights(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
 
         intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)[0:3]
         dy = data_y - slope * data_x - intercept
@@ -511,7 +636,7 @@ class kllr_model():
 
         return sig[1, 0] / np.sqrt(sig[0, 0] * sig[1, 1])
 
-    def calc_covariance_fixed_x(self, data_x, data_y, data_z, x, kernel_type=None, kernel_width=None):
+    def covariance_fixed_x(self, data_x, data_y, data_z, x, kernel_type=None, kernel_width=None):
         """
         This function computes the conditional covariance between two variables data_y and data_z at point x.
 
@@ -550,7 +675,7 @@ class kllr_model():
         if kernel_width is not None:
             self.kernel_width = kernel_width
 
-        weight = calculate_weigth(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
+        weight = calculate_weights(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
 
         intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)[0:3]
         dy = data_y - slope * data_x - intercept
@@ -562,7 +687,7 @@ class kllr_model():
 
         return sig[1, 0]
 
-    def calculate_residual(self, x, y, xrange=None, nbins=60, kernel_type=None, kernel_width=None):
+    def residuals(self, x, y, xrange=None, nbins=60, kernel_type=None, kernel_width=None):
         """
         This function computes the residuals about the mean relation, i.e. res = y - <y | x>.
 
@@ -616,8 +741,8 @@ class kllr_model():
         # Loop over each bin defined by the bin edges above
         for i in range(len(xline) - 1):
             # Compute weight at each edge
-            w1 = calculate_weigth(x, kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
-            w2 = calculate_weigth(x, kernel_type=self.kernel_type, mu=xline[i + 1], width=self.kernel_width)
+            w1 = calculate_weights(x, kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+            w2 = calculate_weights(x, kernel_type=self.kernel_type, mu=xline[i + 1], width=self.kernel_width)
 
             # Compute expected y-value at each bin-edge
             intercept1, slope1, scatter1 = self.linear_regression(x, y, weight=w1)[0:3]
@@ -747,7 +872,8 @@ class kllr_model():
 
         return PDFs, bins, Output
 
-    def fit(self, x, y, y_err = None, xrange=None, nbins=25, kernel_type=None, kernel_width=None):
+    def fit(self, X, y, y_err = None, xrange=None, nbins=25, compute_skewness = False, compute_kurtosis = False,
+            kernel_type=None, kernel_width=None):
         """
         This function computes the local regression parameters at the points within xrange.
 
@@ -798,9 +924,12 @@ class kllr_model():
             The scatter around mean relation
         """
 
+        if len(X.shape) == 1: X = X[:, None] #Make sure X is atleast 2D
+
         # Define x_values to compute regression parameters at
         if xrange is None:
-            xline = np.linspace(np.min(x), np.max(x), nbins)
+
+            xline = np.linspace(np.min(X[:, 0]), np.max(X[:, 0]), nbins)
         else:
             xline = np.linspace(xrange[0], xrange[1], nbins)
 
@@ -811,21 +940,30 @@ class kllr_model():
             self.kernel_type = kernel_type
 
         # Generate array to store output from fit
-        yline_exp, slope_exp, intercept_exp, scatter_exp, skew_exp = [np.zeros(xline.size)
-                                                                      for i in range(5)]
+        yline, slope, intercept, scatter, skew, kurt = [np.zeros(xline.size) for i in range(6)]
 
         # loop over every sample point
         for i in range(len(xline)):
+
             # Generate weights at that sample point
-            w = calculate_weigth(x, kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+            w = calculate_weights(X[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+
             # Compute fit params using linear regressions
-            intercept_exp[i], slope_exp[i], scatter_exp[i], skew_exp[i] = self.linear_regression(x, y, y_err, weight=w)
+            output = self.linear_regression(X, y, y_err, w, compute_skewness, compute_kurtosis)
+            intercept[i] = output[0]
+            slope[i]     = output[1][0]
+            scatter[i]   = output[2]
+            skew[i]      = output[3]
+            kurt[i]      = output[4]
+
             # Generate expected y_value using fit params
-            yline_exp[i] = slope_exp[i] * xline[i] + intercept_exp[i]
+            yline[i] = slope[i] * xline[i] + intercept[i]
 
-        return xline, yline_exp, intercept_exp, slope_exp, scatter_exp, skew_exp
+        return xline, yline, intercept, slope, scatter, skew, kurt
 
-    def multivariate_fit(self, X, y, y_err = None, xrange=None, nbins=25, kernel_type=None, kernel_width=None):
+    def multivariate_fit(self, X, y, y_err = None, xrange=None, nbins=25,
+                         compute_skewness = False, compute_kurtosis = False,
+                         kernel_type=None, kernel_width=None):
         """
         This function computes the local regression parameters at the points within xrange.
         This version support supports multidimensional data for the independent data matrix, X.
@@ -896,22 +1034,27 @@ class kllr_model():
             self.kernel_type = kernel_type
 
         # Generate array to store output from fit
-        slope_exp = np.zeros(shape=(xline.size, X.shape[1]))
-
-        intercept_exp, scatter_exp, skew_exp = [np.zeros(xline.size) for i in range(3)]
+        slopes = np.zeros(shape=(xline.size, X.shape[1]))
+        intercept, scatter, skew, kurt = [np.zeros(xline.size) for i in range(4)]
 
         # loop over every sample point
         for i in range(xline.size):
 
             # Generate weights at that sample point
-            w = calculate_weigth(X[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+            w = calculate_weights(X[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
 
             # Compute fit params using multivariate linear regression
-            intercept_exp[i], slope_exp[i, :], scatter_exp[i], skew_exp[i] = self.multivariate_linear_regression(X, y, weight=w)
+            output = self.linear_regression(X, y, y_err, w, compute_skewness, compute_kurtosis)
+
+            intercept[i] = output[0]
+            slopes[i]    = output[1]
+            scatter[i]   = output[2]
+            skew[i]      = output[3]
+            kurt[i]      = output[4]
 
             # Doesn't seem clear on what it means to
             # compute mean relation just as a function
             # of M200c even though we regress on all properties
             # so I don't give expected <y | x_0> here (eg. x_0 --> M200c)
 
-        return xline, slope_exp, scatter_exp, skew_exp
+        return xline, slopes, scatter, skew, kurt
