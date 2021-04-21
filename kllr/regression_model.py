@@ -44,7 +44,8 @@ from sklearn import linear_model
 
 def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     """
-    This function computes the scatter about the mean relation
+    This function computes the weighted scatter about the mean relation.
+    If weight = None, then this is the regular scatter.
 
     Parameters
     ----------
@@ -347,7 +348,7 @@ def kurtosis(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
 
     m2, m4 = moments([2, 4], X, y, slopes, intercept, y_err, dof, weight)
 
-    kurt = m4/m2**(3/2)
+    kurt = m4/m2**2
 
     return kurt
 
@@ -458,13 +459,13 @@ class kllr_model():
         """
         This function perform a linear regression given a set of weights
         and return the normalization, slope, and scatter about the mean relation.
-        Can also
+
 
         Parameters
         ----------
         X : numpy array
             Independent variable data vector.
-            Can input multiple features
+            Can input multiple features.
 
         y : numpy array
             Dependent variable data vector.
@@ -476,6 +477,8 @@ class kllr_model():
 
         weight : float, optional
             Individual weights for each sample. If none it assumes a uniform weight.
+            If X has multiple features then weights are applied to only using the
+            first feature (or first column)
 
         compute_skewness : boolean, optional
             If compute_skewness == True, the weighted skewness
@@ -490,22 +493,26 @@ class kllr_model():
         float
              intercept
 
-        float
-             slope
+        numpy-array
+             Array of slopes, with the size
+             given by the number of features. If X is
+             1D then the slope output is still a 1D array
+             with size 1.
 
         float
              scatter about the mean relation
 
-        float
+        float or None, optional
              skewness about the mean relation.
              Present only if compute_skewness = True and
              is None if compute_skewness = False
 
-        float
+        float or None, optional
              kurtosis about the mean relation
              Present only if compute_kurtosis = True and
              is None if compute_kurtosis = False
         """
+
         #if X is not 2D then raise error
         if len(X.shape) > 2:
             raise ValueError("Incompatible dimension for X."
@@ -554,7 +561,7 @@ class kllr_model():
 
         skew, kurt = None, None #Set some default values
 
-        if compute_skewness:     skew = skewness(X, y, slopes, intercept, weight=weight)
+        if compute_skewness: skew = skewness(X, y, slopes, intercept, weight=weight)
         if compute_kurtosis: kurt = kurtosis(X, y, slopes, intercept, weight=weight)
 
         return intercept, slopes, sig, skew, kurt
@@ -897,6 +904,14 @@ class kllr_model():
         nbins : int, optional
             The numbers of data points to compute the local regression parameters
 
+        compute_skewness : boolean, optional
+            If compute_skewness == True, the weighted skewness
+            is computed and returned in the output
+
+        compute_kurtosis : boolean, optional
+            If compute_kurtosis == True, the weighted kurtosis
+            is computed and returned in the output
+
         kernel_type : string, optional
             The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
             If None it uses the pre-specified `kernel_type`
@@ -922,6 +937,18 @@ class kllr_model():
 
         numpy-array
             The scatter around mean relation
+
+        numpy-array, optional
+             skewness about the mean relation.
+             Present only if compute_skewness = True and
+             array contains only None elements
+             if compute_skewness = False
+
+        numpy-array, optional
+             kurtosis about the mean relation
+             Present only if compute_kurtosis = True and
+             array contains only None elements
+             if compute_kurtosis = False
         """
 
         if len(X.shape) == 1: X = X[:, None] #Make sure X is atleast 2D
@@ -991,6 +1018,14 @@ class kllr_model():
         nbins : int, optional
             The numbers of data points to compute the local regression parameters
 
+        compute_skewness : boolean, optional
+            If compute_skewness == True, the weighted skewness
+            is computed and returned in the output
+
+        compute_kurtosis : boolean, optional
+            If compute_kurtosis == True, the weighted kurtosis
+            is computed and returned in the output
+
         kernel_type : string, optional
             The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
             If None it uses the pre-specified `kernel_type`
@@ -1002,18 +1037,25 @@ class kllr_model():
 
         Returns
         -------
-        numpy-array
-            The local points.
-
-        numpy-array
-            The intercept at the local points
 
         numpy-array
             The slope w.r.t each input feature,
-            at the local points.
+            evaluated at the local points of the first feature
 
         numpy-array
             The scatter around mean relation
+
+        numpy-array, optional
+             skewness about the mean relation.
+             Present only if compute_skewness = True and
+             array contains only None elements
+             if compute_skewness = False
+
+        numpy-array, optional
+             kurtosis about the mean relation
+             Present only if compute_kurtosis = True and
+             array contains only None elements
+             if compute_kurtosis = False
         """
 
         # Define x_values to compute regression parameters at
