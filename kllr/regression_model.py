@@ -139,7 +139,7 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
         sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2) / (dof - 1)
     else:
         sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2, weights = weight)
-        sig2 /= 1 - np.sum(weights**2)/np.sum(weights)**2 #Required factor for getting unbiased estimate
+        sig2 /= 1 - np.sum(weight**2)/np.sum(weight)**2 #Required factor for getting unbiased estimate
 
     if sig2 <= 0:
 
