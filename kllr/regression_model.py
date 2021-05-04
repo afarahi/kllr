@@ -128,7 +128,7 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
             ": len(slopes.shape) = %i." %len(slopes.shape))
 
     if dof is None:
-        dof = len(X)
+        dof = len(X) - 1
 
     if y_err is None:
         y_err = 0
@@ -136,7 +136,7 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
         weight = weight/y_err
 
     if weight is None:
-        sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2) / (dof - 1)
+        sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2) / dof
     else:
         sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2, weights = weight)
         sig2 /= 1 - np.sum(weight**2)/np.sum(weight)**2 #Required factor for getting unbiased estimate
