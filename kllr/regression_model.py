@@ -43,10 +43,10 @@ from scipy.interpolate import interp1d
 from tqdm import tqdm
 from sklearn import linear_model
 
-def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
+def scatter(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     """
     This function computes the weighted scatter about the mean relation.
-    If weight = None, then this is the regular scatter.
+    If weights= None, then this is the regular scatter.
 
     Parameters
     ----------
@@ -71,7 +71,7 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     dof : int, optional
         Degree of freedom if known otherwise dof = len(x)
 
-    weight : numpy array, optional
+    weights: numpy array, optional
         Individual weights for each sample. If None then all
         datapoints are weighted equally.
 
@@ -134,13 +134,13 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     if y_err is None:
         y_err = 0
     else:
-        weight = weight/y_err
+        weights= weights/y_err
 
-    if weight is None:
+    if weights is None:
         sig2 = sum((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2) / dof
     else:
-        sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2, weights = weight)
-        sig2 /= 1 - np.sum(weight**2)/np.sum(weight)**2 #Required factor for getting unbiased estimate
+        sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2, weights = weights)
+        sig2 /= 1 - np.sum(weights**2)/np.sum(weights)**2 #Required factor for getting unbiased estimate
 
     if (sig2 <= 0) & (y_err is not None):
 
@@ -152,7 +152,7 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     else:
         return np.sqrt(sig2)
 
-def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weight=None):
+def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     """
     This function computes the local moments about the mean relation,
     given some input weights.
@@ -190,7 +190,7 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     dof : int, optional
         Degree of freedom if known otherwise dof = len(x)
 
-    weight : numpy array, optional
+    weights: numpy array, optional
         Individual weights for each sample. If None it assumes a uniform weight.
 
 
@@ -240,7 +240,7 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weight=None):
 
     elif y_err is not None:
 
-        weight = weight/y_err
+        weights= weights/y_err
 
     if dof is None:
         dof = len(X)
@@ -251,11 +251,11 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     residuals = np.array(y) - (np.dot(X, slopes) + intercept)
     for i in range(output.size):
 
-        if weight is None:
+        if weights is None:
             output[i] = np.sum(residuals**m[i]) / dof
 
         else:
-            output[i] = np.average(residuals**m[i], weights=weight)
+            output[i] = np.average(residuals**m[i], weights=weights)
 
     if output.size == 1:
         return output[0]
@@ -263,10 +263,10 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     else:
         return output
 
-def skewness(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
+def skewness(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     """
     This function computes the weighted skewness about the mean relation.
-    If weight = None, then this is the regular skewness.
+    If weights= None, then this is the regular skewness.
 
     Parameters
     ----------
@@ -291,7 +291,7 @@ def skewness(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     dof : int, optional
         Degree of freedom if known otherwise dof = len(x)
 
-    weight : numpy array, optional
+    weights: numpy array, optional
         Individual weights for each sample. If None it assume a uniform weight.
 
 
@@ -303,16 +303,16 @@ def skewness(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
 
     """
 
-    m2, m3 = moments([2, 3], X, y, slopes, intercept, y_err, dof, weight)
+    m2, m3 = moments([2, 3], X, y, slopes, intercept, y_err, dof, weights)
 
     skew = m3/m2**(3/2)
 
     return skew
 
-def kurtosis(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
+def kurtosis(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     """
     This function computes the weighted kurtosis about the mean relation.
-    If weight = None, then this is the regular skewness.
+    If weights= None, then this is the regular skewness.
 
     Parameters
     ----------
@@ -337,7 +337,7 @@ def kurtosis(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
     dof : int, optional
         Degree of freedom if known otherwise dof = len(x)
 
-    weight : numpy array, optional
+    weights: numpy array, optional
         Individual weights for each sample. If None it assume a uniform weight.
 
 
@@ -348,7 +348,7 @@ def kurtosis(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
 
     """
 
-    m2, m4 = moments([2, 4], X, y, slopes, intercept, y_err, dof, weight)
+    m2, m4 = moments([2, 4], X, y, slopes, intercept, y_err, dof, weights)
 
     kurt = m4/m2**2
 
@@ -356,7 +356,7 @@ def kurtosis(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
 
 def calculate_weights(x, kernel_type='gaussian', mu=0, width=0.2):
     """
-    According to the provided kernel, this function computes the weight assigned to each data point.
+    According to the provided kernel, this function computes the weights assigned to each data point.
 
     Parameters
     ----------
@@ -373,7 +373,7 @@ def calculate_weights(x, kernel_type='gaussian', mu=0, width=0.2):
     Returns
     -------
     float
-        the weight vector
+        the weights vector
     """
 
     if len(x.shape) > 1:
@@ -445,6 +445,43 @@ def setup_bins(xrange, bins, x):
 
         return xline
 
+def setup_kernel_width(kernel_width, default_width, bins_size):
+    """
+    Convenience function that sets up the kernel_width values
+
+    Parameters
+    ----------
+    kernel_width : int/float, or a list/array
+
+    default_width : int, or list, tuple, array
+        Default value to assign kernel_width, if input is kernel_width == None
+
+    bins_size : int
+        Number of sampling points in the regression problem
+
+    Returns
+    -------
+    numpy array
+        kernel_widths for each sampling point in the regression problem
+    """
+
+    if kernel_width is None:
+
+        return np.ones(bins_size)*default_width
+
+    elif isinstance(kernel_width, (float, int)):
+
+        return np.ones(bins_size)*kernel_width
+
+    elif isinstance(kernel_width, (list, np.ndarray)):
+
+        if kernel_width.size != bins_size:
+            raise ValueError("Size mismatch. kernel_width is size %d, but we have %d sampling points.\n "%(kernel_width.size, bins_size))
+
+        else:
+
+            return kernel_width
+
 class kllr_model():
     """
     A class used to represent a KLLR model and perform the fit. It is supported by additional functions that allows
@@ -462,7 +499,7 @@ class kllr_model():
 
     Methods
     -------
-    linear_regression(x, y, weight = None)
+    linear_regression(x, y, weights = None)
         perform a linear regression give a set of weights
 
     correlation(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None)
@@ -494,7 +531,7 @@ class kllr_model():
         self.kernel_type  = kernel_type
         self.kernel_width = kernel_width
 
-    def linear_regression(self, X, y, y_err = None, weight=None, compute_skewness = False, compute_kurtosis = False):
+    def linear_regression(self, X, y, y_err = None, weights=None, compute_skewness = False, compute_kurtosis = False):
         """
         This function perform a linear regression given a set of weights
         and return the normalization, slope, and scatter about the mean relation.
@@ -514,7 +551,7 @@ class kllr_model():
             Must contain only non-zero positive values.
             Default is None.
 
-        weight : float, optional
+        weights: float, optional
             Individual weights for each sample. If none it assumes a uniform weight.
             If X has multiple features then weights are applied to only using the
             first feature (or first column)
@@ -585,23 +622,23 @@ class kllr_model():
         # Train the model using the training sets
 
         if y_err is None:
-            regr.fit(X, y, sample_weight=weight)
+            regr.fit(X, y, sample_weight=weights)
 
-        elif (weight is not None) and (y_err is not None):
-            regr.fit(X, y, sample_weight=weight/y_err)
+        elif (weights is not None) and (y_err is not None):
+            regr.fit(X, y, sample_weight=weights/y_err)
 
-        elif (weight is None) and (y_err is not None):
+        elif (weights is None) and (y_err is not None):
             regr.fit(X, y, sample_weight=1/y_err)
 
         slopes = regr.coef_
         intercept = regr.intercept_
 
-        sig = scatter(X, y, slopes, intercept, y_err, weight=weight)
+        sig = scatter(X, y, slopes, intercept, y_err, weights=weights)
 
         skew, kurt = None, None #Set some default values
 
-        if compute_skewness: skew = skewness(X, y, slopes, intercept, weight=weight)
-        if compute_kurtosis: kurt = kurtosis(X, y, slopes, intercept, weight=weight)
+        if compute_skewness: skew = skewness(X, y, slopes, intercept, weights=weights)
+        if compute_kurtosis: kurt = kurtosis(X, y, slopes, intercept, weights=weights)
 
         return intercept, slopes, sig, skew, kurt
 
@@ -683,12 +720,9 @@ class kllr_model():
 
         # Define x_values to compute regression parameters at
         xline = setup_bins(xrange, bins, X[:, 0])
+        kernel_width = setup_kernel_width(kernel_width, self.kernel_width, xline.size)
 
-        if kernel_width is not None:
-            self.kernel_width = kernel_width
-
-        if kernel_type is not None:
-            self.kernel_type = kernel_type
+        if kernel_type is None: kernel_type = self.kernel_type
 
         # Generate array to store output from fit
         slopes = np.zeros(shape=(nBootstrap, xline.size, X.shape[1]))
@@ -723,7 +757,7 @@ class kllr_model():
                 X_small, y_small, y_err_small = X, y, y_err
 
             # Generate weights at sample point
-            w = calculate_weights(X_small[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+            w = calculate_weights(X_small[:, 0], kernel_type = kernel_type, mu = xline[i], width = kernel_width[i])
 
             for j in range(nBootstrap):
 
@@ -809,9 +843,7 @@ class kllr_model():
         if len(X.shape) == 1: X = X[:, None] #Make sure X is atleast 2D
 
         xline = setup_bins(xrange, bins, X[:, 0])
-
-        if kernel_width is not None:
-            self.kernel_width = kernel_width
+        kernel_width = setup_kernel_width(kernel_width, self.kernel_width, xline.size)
 
         if kernel_type is not None:
             self.kernel_type = kernel_type
@@ -842,7 +874,7 @@ class kllr_model():
                 X_small, y_small, z_small, y_err_small = X, y, z, y_err
 
             # Generate weights at sample point
-            w = calculate_weights(X_small[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+            w = calculate_weights(X_small[:, 0], kernel_type = kernel_type, mu=xline[i], width=kernel_width[i])
 
             for j in range(nBootstrap):
 
@@ -868,10 +900,10 @@ class kllr_model():
                     y_err_small_in = y_err_small[rand_ind]
 
                 # Compute fit params using linear regressions
-                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weight = w_rand)[:2]
+                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weights= w_rand)[:2]
                 dy = y_small_rand - (intercept + np.dot(X_small_rand, slope))
 
-                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, y_err_small_in, weight = w_rand)[:2]
+                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, y_err_small_in, weights= w_rand)[:2]
                 dz = z_small_rand - (intercept + np.dot(X_small_rand, slope))
 
                 cov = np.cov(dy, dz, aweights = w_rand)
@@ -918,9 +950,7 @@ class kllr_model():
         if len(X.shape) == 1: X = X[:, None] #Make sure X is atleast 2D
 
         xline = setup_bins(xrange, bins, X[:, 0])
-
-        if kernel_width is not None:
-            self.kernel_width = kernel_width
+        kernel_width = setup_kernel_width(kernel_width, self.kernel_width, xline.size)
 
         if kernel_type is not None:
             self.kernel_type = kernel_type
@@ -951,7 +981,7 @@ class kllr_model():
                 X_small, y_small, z_small, y_err_small = X, y, z, y_err
 
             # Generate weights at sample point
-            w = calculate_weights(X_small[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+            w = calculate_weights(X_small[:, 0], kernel_type=kernel_type, mu=xline[i], width=kernel_width[i])
 
             for j in range(nBootstrap):
 
@@ -977,10 +1007,10 @@ class kllr_model():
                     y_err_small_in = y_err_small[rand_ind]
 
                 # Compute fit params using linear regressions
-                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weight = w_rand)[:2]
+                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weights= w_rand)[:2]
                 dy = y_small_rand - (intercept + np.dot(X_small_rand, slope))
 
-                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, y_err_small_in, weight = w_rand)[:2]
+                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, y_err_small_in, weights= w_rand)[:2]
                 dz = z_small_rand - (intercept + np.dot(X_small_rand, slope))
 
                 cov = np.cov(dy, dz, aweights = w_rand)
@@ -1026,15 +1056,15 @@ class kllr_model():
 
         # Define x_values to compute regression parameters at
         xline = setup_bins(xrange, bins, X[:, 0])
+        kernel_width = setup_kernel_width(kernel_width, self.kernel_width, xline.size)
 
         if kernel_type is not None:
             self.kernel_type = kernel_type
 
-        if kernel_width is not None:
-            self.kernel_width = kernel_width
-
         #Get fit
-        output = self.fit(X, y, y_err, xrange, bins, nBootstrap, fast_calc)
+        output = self.fit(X, y, y_err, xrange, bins, nBootstrap, fast_calc,
+                          kernel_type = kernel_type, kernel_width = kernel_width)
+
         xline, intercept, slopes, scatter = output[0], output[2], output[3], output[4]
 
         # Edge case, where nBootstrap == 1, or X has only one column

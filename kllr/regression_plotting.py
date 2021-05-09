@@ -297,11 +297,11 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
             split_bins = [np.percentile(split_data, float(i / split_bins) * 100) for i in range(0, split_bins + 1)]
 
         elif split_mode == 'Residuals':
-            split_res = lm.residuals(x_data, split_data, xrange=None, nBootstrap = 1)
+            split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
             split_bins = [np.percentile(split_res, float(i / split_bins) * 100) for i in range(0, split_bins + 1)]
 
     elif isinstance(split_bins, (np.ndarray, list, tuple)) & (split_mode == 'Residuals'):
-        split_res = lm.residuals(x_data, split_data, xrange=None, nBootstrap = 1)
+        split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
 
 
     # Define dictionary that will contain values that are being plotted
@@ -497,12 +497,12 @@ def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], sp
         if split_mode == 'Data':
             split_bins = [np.percentile(split_data, float(i / split_bins) * 100) for i in range(0, split_bins + 1)]
         elif split_mode == 'Residuals':
-            split_res = lm.residuals(x_data, split_data, xrange=None, nBootstrap = 1)
+            split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
             split_bins = [np.percentile(split_res, float(i / split_bins) * 100) for i in range(0, split_bins + 1)]
 
     # Need to compute residuals if split_mode == 'Residuals' is chosen
     elif isinstance(split_bins, (np.ndarray, list, tuple)) & (split_mode == 'Residuals'):
-        split_res = lm.residuals(x_data, split_data, xrange=None, nBootstrap = 1)
+        split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
 
     # Define Output_Data variable to store all computed data that is then plotted
     output_Data = {'Bin' + str(i): {} for i in range(len(split_bins) - 1)}
@@ -798,11 +798,11 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                     split_bins = [np.percentile(split_data, float(i / split_bins) * 100) for i in
                                   range(0, split_bins + 1)]
                 elif split_mode == 'Residuals':
-                    split_res = lm.residuals(x_data, split_data, xrange=None, nBootstrap = 1)
+                    split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
                     split_bins = [np.percentile(split_res, float(i / split_bins) * 100) for i in
                                   range(0, split_bins + 1)]
             elif isinstance(split_bins, (np.ndarray, list, tuple)) & (split_mode == 'Residuals'):
-                split_res = lm.residuals(x_data, split_data, xrange=None, nBootstrap = 1)
+                split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
 
             # Define Output_Data variable to store all computed data that is then plotted
             output_Data = {'Bin' + str(i): {} for i in range(len(split_bins) - 1)}
@@ -993,11 +993,11 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
             split_bins = [np.percentile(split_data, float(i / split_bins) * 100) for i in range(0, split_bins + 1)]
 
         elif split_mode == 'Residuals':
-            split_res = lm.residuals(x_data, split_data, xrange=None, nBootstrap = 1)
+            split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
             split_bins = [np.percentile(split_res, float(i / split_bins) * 100) for i in range(0, split_bins + 1)]
 
     elif isinstance(split_bins, (np.ndarray, list, tuple)) & (split_mode == 'Residuals'):
-        split_res = lm.residuals(x_data, split_data, xrange=None, nBootstrap = 1)
+        split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
 
     # Define Output_Data variable to store all computed data that is then plotted
     output_Data = {'Bin' + str(i): {} for i in range(len(split_bins) - 1)}
