@@ -32,13 +32,14 @@ An example for using KLLR looks like this:
     |                                                                      |
     |    lm = kllr_model(kernel_type = 'gaussian', kernel_width = 0.2)     |
     |    xrange, yrange_mean, intercept, slope, scatter, skew, kurt =      |
-    |             lm.fit(x, y, nbins=11)                                   |
+    |             lm.fit(x, y, bins=11)                                   |
     |                                                                      |
     ------------------------------------------------------------------------
 
 """
 
 import numpy as np
+from scipy.interpolate import interp1d
 from tqdm import tqdm
 from sklearn import linear_model
 
@@ -141,9 +142,9 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weight=None):
         sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2, weights = weight)
         sig2 /= 1 - np.sum(weight**2)/np.sum(weight)**2 #Required factor for getting unbiased estimate
 
-    if sig2 <= 0:
+    if (sig2 <= 0) & (y_err is not None):
 
-        print("The uncertainty, y_err, is larger than the instrinsic scatter.",
+        print("The uncertainty, y_err, is larger than the instrinsic scatter. " + \
               "The corrected variance, var_true = var_obs - y_err^2, is negative.")
 
         return sig2
@@ -233,7 +234,7 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weight=None):
         y_err = np.asarray(y_err)
 
         if (y_err <= 0).any():
-            raise ValueError("Input y_err contains either zeros or negative values.",
+            raise ValueError("Input y_err contains either zeros or negative values. " + \
                              "It should contain only positive values.")
 
 
@@ -363,11 +364,11 @@ def calculate_weights(x, kernel_type='gaussian', mu=0, width=0.2):
         A one dimensional data vector.
 
     kernel_type : string, optional
-        The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel. The default is Gaussian
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
 
     mu, width : float, optional
         If kernel_type = 'gaussian' then 'mu' and 'width' are the mean and width of the gaussian kernels, respectively.
-        If kernel_type = 'uniform' then 'mu' and 'width' are the mean and width of the uniform kernels, respectively.
+        If kernel_type = 'tophat' then 'mu' and 'width' are the mean and width of the tophat kernels, respectively.
 
     Returns
     -------
@@ -384,16 +385,16 @@ def calculate_weights(x, kernel_type='gaussian', mu=0, width=0.2):
     def gaussian_kernel(x, mu=0.0, width=1.0):
         return np.exp(-(x - mu) ** 2 / 2. / width ** 2)
 
-    # the uniform kernel
-    def uniform_kernel(x, mu=0.0, width=1.0):
+    # the tophat kernel
+    def tophat_kernel(x, mu=0.0, width=1.0):
         w = np.zeros(len(x))
         w[(x - mu < width / 2.0) * (x - mu > -width / 2.0)] = 1.0
         return w
 
     if kernel_type == 'gaussian':
         w = gaussian_kernel(x, mu=mu, width=width)
-    elif kernel_type == 'uniform':
-        w = uniform_kernel(x, mu=mu, width=width)
+    elif kernel_type == 'tophat':
+        w = tophat_kernel(x, mu=mu, width=width)
     else:
         print("Warning : ", kernel_type, "is not a defined filter.")
         print("It assumes w = 1 for every point.")
@@ -401,42 +402,79 @@ def calculate_weights(x, kernel_type='gaussian', mu=0, width=0.2):
 
     return w
 
+def setup_bins(xrange, bins, x):
+    """
+    Convenience function that generates sample points for regression
+
+    Parameters
+    ----------
+    xrange : list, array
+        2-element array [min, max] of the range the regression is performed over.
+        If min and/or max is set to None, then we use the vector x to determine it.
+
+    bins : int, or list, tuple, array
+        If "int", then we use xrange and data vector to compute the sampling points
+        If list, or array, then the input is used as the sampling points.
+
+    x : numpy array
+        Data vector of the independent variable in the regression.
+        If xrange == None, then we use this data vector to set the range of the regression
+
+    Returns
+    -------
+    numpy array
+        sampling points of the regression
+    """
+
+    if isinstance(bins, (np.ndarray, list, tuple)):
+
+        return np.asarray(bins)
+
+    elif isinstance(bins, int):
+
+        if xrange is None:
+            xrange = (np.min(x), np.max(x))
+
+        elif xrange[0] is None:
+            xrange[0] = np.min(x)
+
+        elif xrange[1] is None:
+            xrange[1] = np.max(x)
+
+        xline = np.linspace(xrange[0], xrange[1], bins, endpoint=True)
+
+        return xline
+
 class kllr_model():
     """
-    A class used to represent a KLLR model and perform the fit. It is supported bu additional functions that allows
-     to compute the conditional properties such as residuals about the mean relation,
-     the correlation coefficient, and the covariance.
+    A class used to represent a KLLR model and perform the fit. It is supported by additional functions that allows
+    to compute the conditional properties such as residuals about the mean relation,
+    the correlation coefficient, and the covariance.
 
     Attributes
     ----------
     kernel_type : string
-        The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel. The default is Gaussian
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
 
     kernel_width : float
          If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
-         If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
+         If kernel_type = 'tophat' then 'width' is the width of the tophat kernel.
 
     Methods
     -------
     linear_regression(x, y, weight = None)
         perform a linear regression give a set of weights
 
-    subsample(x, length=False)
-        generate a bootstrapped sample
-
-    correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None)
+    correlation(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None)
         compute the conditional correlation coefficient conditioned at point x
 
-    covariance_fixed_x(x, y, xrange = None, nbins = 60, kernel_type = None, kernel_width = None)
+    covariance(x, y, xrange = None, bins = 60, kernel_type = None, kernel_width = None)
         compute the conditional correlation coefficient conditioned at point x
 
-    residuals(x, y, xrange = None, nbins = 60, kernel_type = None, kernel_width = None)
+    residuals(x, y, xrange = None, bins = 60, kernel_type = None, kernel_width = None)
         compute residuls about the mean relation i.e., res = y - <y|X>
 
-    PDF_generator(self, res, nbins, nBootstrap = 1000, funcs = {}, xrange = (-4, 4), verbose = True,  **kwargs)
-        generate a binned PDF of residuals around the mean relation
-
-    fit(x, y, xrange = None, nbins = 25, kernel_type = None, kernel_width = None)
+    fit(x, y, xrange = None, bins = 25, kernel_type = None, kernel_width = None)
         fit a kernel localized linear relation to (x, y) pairs, i.e. <y | x> = a(y) x + b(y)
 
     """
@@ -446,14 +484,14 @@ class kllr_model():
         Parameters
         ----------
         kernel_type : string, optional
-            the kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel. The default is Gaussian
+            the kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
 
         kernel_width : float, optional
             if kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
-            if kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
+            if kernel_type = 'tophat' then 'width' is the width of the tophat kernel.
         """
 
-        self.kernel_type = kernel_type
+        self.kernel_type  = kernel_type
         self.kernel_width = kernel_width
 
     def linear_regression(self, X, y, y_err = None, weight=None, compute_skewness = False, compute_kurtosis = False):
@@ -540,7 +578,7 @@ class kllr_model():
             y_err = np.asarray(y_err)
 
             if (y_err <= 0).any():
-                raise ValueError("Input y_err contains either zeros or negative values.",
+                raise ValueError("Input y_err contains either zeros or negative values. " + \
                                  "It should contain only positive values.")
 
         regr = linear_model.LinearRegression()
@@ -558,7 +596,7 @@ class kllr_model():
         slopes = regr.coef_
         intercept = regr.intercept_
 
-        sig  = scatter(X, y, slopes, intercept, y_err, weight=weight)
+        sig = scatter(X, y, slopes, intercept, y_err, weight=weight)
 
         skew, kurt = None, None #Set some default values
 
@@ -567,321 +605,10 @@ class kllr_model():
 
         return intercept, slopes, sig, skew, kurt
 
-    def subsample(self, x, length=False):
-        """
-        This function re-samples an array and returns the re-sampled array
-        and its indices (if you need to use it as a mask for other arrays)
+    def fit(self, X, y, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
+            fast_calc = False, compute_skewness = False, compute_kurtosis = False,
+            kernel_type = None, kernel_width = None):
 
-        Parameters
-        ----------
-        x : numpy array
-            One dimensional data array.
-
-        length : bool, optional
-            The length of bootstrapped sample. If False it assumes `length = len(x)`.
-
-        Returns
-        -------
-        numpy array
-            the re-sampled vector
-
-        numpy array
-            the re-sample index
-        """
-        x = np.array(x)
-        l = length if length else len(x)
-        resample = np.floor(np.random.rand(l) * int(len(x))).astype(int)
-        return x[resample], resample
-
-    def correlation_fixed_x(self, data_x, data_y, data_z, x, kernel_type=None, kernel_width=None):
-        """
-        This function computes the conditional correlation between two variables data_y and data_z at point x.
-
-        Parameters
-        ----------
-        data_x : numpy array
-            Independent variable data vector. This version only support a one dimensional data vector.
-
-        data_y : numpy array
-            Dependent variable data vector. This version only support a one dimensional data vector.
-
-        data_z : numpy array
-            Dependent variable data vector. This version only support a one dimensional data vector.
-
-        x : float
-            Value of the conditional parameter. It computes the correlation coefficient at this point.
-
-        kernel_type : string, optional
-            Rhe kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
-            If None it uses the pre-specified `kernel_type`
-
-        kernel_width : float, optional
-            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
-            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
-            If None it uses the pre-specified `kernel_width`
-
-        Returns
-        -------
-        float
-             Correlation coefficient.
-        """
-
-        if kernel_type is not None:
-            self.kernel_type = kernel_type
-
-        if kernel_width is not None:
-            self.kernel_width = kernel_width
-
-        weight = calculate_weights(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
-
-        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)[0:3]
-        dy = data_y - slope * data_x - intercept
-
-        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)[0:3]
-        dz = data_z - slope * data_x - intercept
-
-        sig = np.cov(dy, dz, aweights=weight)
-
-        return sig[1, 0] / np.sqrt(sig[0, 0] * sig[1, 1])
-
-    def covariance_fixed_x(self, data_x, data_y, data_z, x, kernel_type=None, kernel_width=None):
-        """
-        This function computes the conditional covariance between two variables data_y and data_z at point x.
-
-        Parameters
-        ----------
-        data_x : numpy array
-            Independent variable data vector. This version only support a one dimensional data vector.
-
-        data_y : numpy array
-            Dependent variable data vector. This version only support a one dimensional data vector.
-
-        data_z : numpy array
-            Dependent variable data vector. This version only support a one dimensional data vector.
-
-        x : float
-            Value of the conditional parameter. It computes the covariance at this point.
-
-        kernel_type : string, optional
-            Rhe kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
-            If None it uses the pre-specified `kernel_type`
-
-        kernel_width : float, optional
-            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
-            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
-            If None it uses the pre-specified `kernel_width`
-
-        Returns
-        -------
-        float
-             Covariance.
-        """
-
-        if kernel_type is not None:
-            self.kernel_type = kernel_type
-
-        if kernel_width is not None:
-            self.kernel_width = kernel_width
-
-        weight = calculate_weights(data_x, kernel_type=self.kernel_type, mu=x, width=self.kernel_width)
-
-        intercept, slope, sig = self.linear_regression(data_x, data_y, weight=weight)[0:3]
-        dy = data_y - slope * data_x - intercept
-
-        intercept, slope, sig = self.linear_regression(data_x, data_z, weight=weight)[0:3]
-        dz = data_z - slope * data_x - intercept
-
-        sig = np.cov(dy, dz, aweights=weight)
-
-        return sig[1, 0]
-
-    def residuals(self, x, y, xrange=None, nbins=60, kernel_type=None, kernel_width=None):
-        """
-        This function computes the residuals about the mean relation, i.e. res = y - <y | x>.
-
-        Parameters
-        ----------
-        x : numpy array
-            Independent variable data vector. This version only support a one dimensional data vector.
-
-        y : numpy array
-            Dependent variable data vector. This version only support a one dimensional data vector.
-
-        xrange : list, optional
-            The range of regression. The first element is the min and the second element is the max.
-            If None it set it to min and max of x, i.e., `xrange = [min(x), max(x)]`
-
-        nbins : int, optional
-            The numbers of bins to compute the local regression parameters. The default value is 60 bins.
-
-        kernel_type : string, optional
-            The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
-            If None it uses the pre-specified `kernel_type`
-
-        kernel_width : float, optional
-            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
-            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
-            If None it uses the pre-specified `kernel_width`
-
-        Returns
-        -------
-        numpy array
-             Individual residuals.
-        """
-
-        if kernel_type is not None:
-            self.kernel_type = kernel_type
-
-        if kernel_width is not None:
-            self.kernel_width = kernel_width
-
-        res = np.array([])  # Array to store residuals
-        Index = np.array([])  # array to map what residual belongs to what Halo
-
-        # NOTE: The number of sampling points (60) is currently used as default option
-        # changing it only changes accuracy a bit (narrower bins means interpolations are more accurate),
-        # and also changes computation time
-        if xrange is None:
-            xline = np.linspace(np.min(x) - 0.01, np.max(x) + 0.01, nbins)
-        else:
-            xline = np.linspace(xrange[0], xrange[1], nbins)
-
-        # Loop over each bin defined by the bin edges above
-        for i in range(len(xline) - 1):
-            # Compute weight at each edge
-            w1 = calculate_weights(x, kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
-            w2 = calculate_weights(x, kernel_type=self.kernel_type, mu=xline[i + 1], width=self.kernel_width)
-
-            # Compute expected y-value at each bin-edge
-            intercept1, slope1, scatter1 = self.linear_regression(x, y, weight=w1)[0:3]
-            yline1 = slope1 * xline[i] + intercept1
-            intercept2, slope2, scatter2 = self.linear_regression(x, y, weight=w2)[0:3]
-            yline2 = slope2 * xline[i + 1] + intercept2
-
-            # Compute slope in this bin
-            slope = (yline2 - yline1) / (xline[i + 1] - xline[i])
-
-            # Mask to select only halos in this bin
-            mask = (x >= xline[i]) & (x < xline[i + 1])
-
-            # Interpolate to get scatter at each halo
-            std = scatter1 + (scatter2 - scatter1) / (xline[i + 1] - xline[i]) * (x[mask] - xline[i])
-            # Interpolate expected y-values and Compute residuals
-            dy = y[mask] - (yline1 + (yline2 - yline1) / (xline[i + 1] - xline[i]) * (x[mask] - xline[i]))
-            res = np.concatenate((res, dy / std))
-
-            # Keep track of an index that maps which residual belongs to which halo
-            Index = np.concatenate((Index, np.where(mask)[0]))
-
-        # Reshuffle residuals so that res[i] was computed using the halo with values x[i] and y[i]
-        res = np.array(res)[np.argsort(Index)]
-
-        return res
-
-    def PDF_generator(self, res, nbins=20, nBootstrap=1000, funcs={}, xrange=(-4, 4), verbose=True,
-                      density=True, weights=None):
-        """
-
-        Parameters
-        ----------
-        res : numpy array
-            Individual residuals, i.e. res = y - <y|x>.
-
-        nbins : integer, optional
-            Number of bins for the PDF.
-
-        xrange : list, optional
-            Tuple containing min and max bin values.
-
-        nBootstrap : integer, optional
-            Number of Bootstrap realizations of the PDF.
-
-        funcs : dictionary, optional
-            Dictionary of functions to apply on the Bootstrapped residuals. Format is {'Name': func}.
-
-        verbose : bool, optional
-            Turn on/off the verbosity of the PDF output during the bootstrapping.
-
-        density : bool, optional
-            If False, the result will contain the number of samples in each bin.
-             If True, the result is the value of the probability density function at the bin, normalized such
-             that the integral over the range is 1. Note that the sum of the histogram values will not be
-             equal to 1 unless bins of unity width are chosen; it is not a probability mass function.
-
-        weights : numpy array, optional
-            An array of weights, of the same shape as a. Each value in a only contributes its associated weight
-             towards the bin count (instead of 1). If density is True, the weights are normalized, so that the
-             integral of the density over the range remains 1. If None it assumes a uniform weight.
-
-        Returns
-        -------
-        numpy array
-            Numpy array of size (nBootstrap, nbins) containing all realizations of PDFs
-
-        numpy array
-            Central values of the bins of the PDF
-
-        Dictionary
-            Dictionary with format {'name': result}, where result is the output of user-inputted inputted
-            functions acting on residuals.
-        """
-
-        if verbose:
-            iterations = tqdm(range(nBootstrap))
-        else:
-            iterations = range(nBootstrap)
-
-        Output = {}
-
-        # Writing a flag for array creation in case user pases an array defining the bin_edges
-        # instead of numbers of bins.
-        if isinstance(nbins, np.ndarray):
-            print("An Array has been passed into nbins param")
-            PDFs = np.empty([nBootstrap, len(nbins) - 1])
-        else:
-            PDFs = np.empty([nBootstrap, nbins])
-
-        # Generate dictionary whose keys are the same keys as the 'func' dictionary
-        for function_name in funcs:
-            # Choose to use list over np.array because list can handle many types of data
-            Output[function_name] = []
-
-        for iBoot in iterations:
-
-            if iBoot == 0:
-                residuals = res
-                try:
-                    w = weights
-                except:
-                    w = None
-            else:
-                residuals, index = self.subsample(res)
-                try:
-                    # If weights exist, reshuffle them according to subsampling
-                    w = weights[index]
-                except:
-                    w = None
-
-            # Compute PDF and store in one row of 2D array
-            PDFs[iBoot, :] = np.histogram(residuals, bins=nbins, range=xrange, weights=w, density=density)[0]
-
-            # For each bootstrap, store function output for each function in funcs
-            for function_name in funcs:
-                Output[function_name].append(funcs[function_name](residuals))
-
-        if isinstance(nbins, np.ndarray):
-            # Set array to be the centers of each bin defined by the input array, nbin
-            bins = (nbins[1:] + nbins[:-1]) / 2.
-        elif isinstance(nbins, (int)):
-            # Generate bin_edges
-            bins = np.histogram([], bins=nbins, range=xrange)[1]
-            # Set array to be the centers of each bin
-            bins = (bins[1:] + bins[:-1]) / 2.
-
-        return PDFs, bins, Output
-
-    def fit(self, X, y, y_err = None, xrange=None, nbins=25, compute_skewness = False, compute_kurtosis = False,
-            kernel_type=None, kernel_width=None):
         """
         This function computes the local regression parameters at the points within xrange.
 
@@ -902,7 +629,7 @@ class kllr_model():
             The first element is the min and the second element is the max,
             If None, it sets xrange to [min(x), max(x)]
 
-        nbins : int, optional
+        bins : int, optional
             The numbers of data points to compute the local regression parameters
 
         compute_skewness : boolean, optional
@@ -914,12 +641,12 @@ class kllr_model():
             is computed and returned in the output
 
         kernel_type : string, optional
-            The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
+            The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel.
             If None it uses the pre-specified `kernel_type`
 
         kernel_width : float, optional
             If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
-            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
+            If kernel_type = 'tophat' then 'width' is the width of the tophat kernel.
             If None it uses the pre-specified `kernel_width`.
 
         Returns
@@ -955,11 +682,7 @@ class kllr_model():
         if len(X.shape) == 1: X = X[:, None] #Make sure X is atleast 2D
 
         # Define x_values to compute regression parameters at
-        if xrange is None:
-
-            xline = np.linspace(np.min(X[:, 0]), np.max(X[:, 0]), nbins)
-        else:
-            xline = np.linspace(xrange[0], xrange[1], nbins)
+        xline = setup_bins(xrange, bins, X[:, 0])
 
         if kernel_width is not None:
             self.kernel_width = kernel_width
@@ -968,107 +691,124 @@ class kllr_model():
             self.kernel_type = kernel_type
 
         # Generate array to store output from fit
-        yline, slope, intercept, scatter, skew, kurt = [np.zeros(xline.size) for i in range(6)]
+        slopes = np.zeros(shape=(nBootstrap, xline.size, X.shape[1]))
+        yline, intercept, scatter, skew, kurt = [np.zeros([nBootstrap, xline.size]) for i in range(5)]
+
+        # If X has multiple features, we cannot compute an expectation value <y | X>
+        # that is just a line (it would be in a N-D plane instead). So set yline = None then.
+        if X.shape[1] > 1:
+            yline = None
 
         # loop over every sample point
         for i in range(len(xline)):
 
-            # Generate weights at that sample point
-            w = calculate_weights(X[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+            if fast_calc:
 
-            # Compute fit params using linear regressions
-            output = self.linear_regression(X, y, y_err, w, compute_skewness, compute_kurtosis)
-            intercept[i] = output[0]
-            slope[i]     = output[1][0]
-            scatter[i]   = output[2]
-            skew[i]      = output[3]
-            kurt[i]      = output[4]
+                Mask = (X[:, 0] > xline[i] - self.kernel_width*3) & (X[:, 0] < xline[i] + self.kernel_width*3)
+                X_small, y_small = X[Mask, :], y[Mask]
 
-            # Generate expected y_value using fit params
-            yline[i] = slope[i] * xline[i] + intercept[i]
+                if y_err is None:
+                    y_err_small = None
+                elif isinstance(y_err, np.ndarray):
+                    y_err_small = y_err[Mask]
 
-        return xline, yline, intercept, slope, scatter, skew, kurt
+                if X_small.size == 0:
 
-    def multivariate_fit(self, X, y, y_err = None, xrange=None, nbins=25,
-                         compute_skewness = False, compute_kurtosis = False,
-                         kernel_type=None, kernel_width=None):
+                    raise ValueError("Attempting regression using 0 objects. To correct this\n" + \
+                                     "you can (i) set fast_calc = False, (ii) increase kernel width, or;\n" + \
+                                     "(iii) perform KLLR over a narrower xrange")
+
+            else:
+
+                X_small, y_small, y_err_small = X, y, y_err
+
+            # Generate weights at sample point
+            w = calculate_weights(X_small[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+
+            for j in range(nBootstrap):
+
+                #First "bootstrap" is always using unsampled data
+                if j == 1:
+                    rand_ind = np.ones(y_small.size).astype(bool)
+                else:
+                    rand_ind = np.random.randint(0, y_small.size, y_small.size)
+
+                #Edge case handling I:
+                #If y_err is a None, then we can't index it
+                if y_err_small is None:
+                    y_err_small_in = None
+                elif isinstance(y_err_small, np.ndarray):
+                    y_err_small_in = y_err_small[rand_ind]
+
+                # Compute fit params using linear regressions
+                output = self.linear_regression(X_small[rand_ind], y_small[rand_ind],
+                                                y_err_small_in, w[rand_ind],
+                                                compute_skewness, compute_kurtosis)
+
+                intercept[j, i] = output[0]
+                slopes[j, i]    = output[1]
+                scatter[j, i]   = output[2]
+                skew[j, i]      = output[3]
+                kurt[j, i]      = output[4]
+
+                if X.shape[1] == 1:
+                    # Generate expected y_value using fit params
+                    yline[j, i] = slopes[j, i, 0] * xline[i] + intercept[j, i]
+
+        if nBootstrap == 1:
+
+            yline     = np.squeeze(yline, 0)
+            intercept = np.squeeze(intercept, 0)
+            slopes    = np.squeeze(slopes, 0)
+            scatter   = np.squeeze(scatter, 0)
+            skew      = np.squeeze(skew, 0)
+            kurt      = np.squeeze(kurt, 0)
+
+        if X.shape[1] == 1:
+
+            slopes = np.squeeze(slopes, -1)
+
+        return xline, yline, intercept, slopes, scatter, skew, kurt
+
+    def correlation(self, X, y, z, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
+                    fast_calc = False, kernel_type=None, kernel_width=None):
+
         """
-        This function computes the local regression parameters at the points within xrange.
-        This version support supports multidimensional data for the independent data matrix, X.
-        However the kernel weighting uses only the first column in X, i.e. X[:, 0].
-        The predicted variable, y, must still be 1D.
+        This function computes the correlatio between two variables y and z,
+        conditioned on all the properties in data vector X.
 
         Parameters
         ----------
-        X : numpy array (n_rows, n_features)
-            Independent variable data matrix.
-            The weighting is only applied to the first feature.
+        X : numpy array
+            Independent variable data vector. Can contain multiple features.
 
-        y : numpy array (n_rows)
+        y : numpy array
             Dependent variable data vector. Must be a one dimensional data vector.
 
-        y_err : numpy array (n_rows), optional
-            Uncertainty on dependent variable, y.
-            Must contain only non-zero positive values.
-            Default is None.
+        z : numpy array
+            Dependent variable data vector. Must be a one dimensional data vector.
 
-        xrange : list, optional
-            The first element is the min and the second element is the max,
-            If None, it sets xrange to [min(x), max(x)]
-
-        nbins : int, optional
-            The numbers of data points to compute the local regression parameters
-
-        compute_skewness : boolean, optional
-            If compute_skewness == True, the weighted skewness
-            is computed and returned in the output
-
-        compute_kurtosis : boolean, optional
-            If compute_kurtosis == True, the weighted kurtosis
-            is computed and returned in the output
+        xrange : float
+            Value of the conditional parameter. It computes the covariance at this point.
 
         kernel_type : string, optional
-            The kernel type, ['gaussian', 'uniform'] else it assumes uniform kernel.
+            Rhe kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel.
             If None it uses the pre-specified `kernel_type`
 
         kernel_width : float, optional
             If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
-            If kernel_type = 'uniform' then 'width' is the width of the uniform kernel.
-            If None it uses the pre-specified `kernel_width`.
+            If kernel_type = 'tophat' then 'width' is the width of the tophat kernel.
+            If None it uses the pre-specified `kernel_width`
 
         Returns
         -------
-
-        numpy-array
-            The slope w.r.t each input feature,
-            evaluated at the local points of the first feature
-
-        numpy-array
-            The scatter around mean relation
-
-        numpy-array, optional
-             skewness about the mean relation.
-             Present only if compute_skewness = True and
-             array contains only None elements
-             if compute_skewness = False
-
-        numpy-array, optional
-             kurtosis about the mean relation
-             Present only if compute_kurtosis = True and
-             array contains only None elements
-             if compute_kurtosis = False
+        float
+             Covariance.
         """
 
-        # Define x_values to compute regression parameters at
-        # Only use first feature in independent variable matrix
-        if xrange is None:
-            xrange = (np.min(X[:, 0]), np.max(X[:, 0]))
-        elif xrange[0] is None:
-            xrange[0] = np.min(X[:, 0])
-        elif xrange[1] is None:
-            xrange[1] = np.max(X[:, 0])
+        if len(X.shape) == 1: X = X[:, None] #Make sure X is atleast 2D
 
-        xline = np.linspace(xrange[0], xrange[1], nbins, endpoint=True)
+        xline = setup_bins(xrange, bins, X[:, 0])
 
         if kernel_width is not None:
             self.kernel_width = kernel_width
@@ -1076,28 +816,249 @@ class kllr_model():
         if kernel_type is not None:
             self.kernel_type = kernel_type
 
-        # Generate array to store output from fit
-        slopes = np.zeros(shape=(xline.size, X.shape[1]))
-        intercept, scatter, skew, kurt = [np.zeros(xline.size) for i in range(4)]
+        correlation = np.zeros([nBootstrap, xline.size])
 
         # loop over every sample point
-        for i in range(xline.size):
+        for i in range(len(xline)):
 
-            # Generate weights at that sample point
-            w = calculate_weights(X[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+            if fast_calc:
 
-            # Compute fit params using multivariate linear regression
-            output = self.linear_regression(X, y, y_err, w, compute_skewness, compute_kurtosis)
+                Mask = (X[:, 0] > xline[i] - self.kernel_width*3) & (X[:, 0] < xline[i] + self.kernel_width*3)
+                X_small, y_small, z_small = X[Mask, :], y[Mask], z[Mask]
 
-            intercept[i] = output[0]
-            slopes[i]    = output[1]
-            scatter[i]   = output[2]
-            skew[i]      = output[3]
-            kurt[i]      = output[4]
+                if y_err is None:
+                    y_err_small = None
+                elif isinstance(y_err, np.ndarray):
+                    y_err_small = y_err[Mask]
 
-            # Doesn't seem clear on what it means to
-            # compute mean relation just as a function
-            # of M200c even though we regress on all properties
-            # so I don't give expected <y | x_0> here (eg. x_0 --> M200c)
+                if X_small.size == 0:
 
-        return xline, slopes, scatter, skew, kurt
+                    raise ValueError("Attempting regression using 0 objects. To correct this\n" + \
+                                     "you can (i) set fast_calc = False, (ii) increase kernel width, or;\n" + \
+                                     "(iii) perform KLLR over a narrower xrange")
+
+            else:
+
+                X_small, y_small, z_small, y_err_small = X, y, z, y_err
+
+            # Generate weights at sample point
+            w = calculate_weights(X_small[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+
+            for j in range(nBootstrap):
+
+                #First "bootstrap" is always using unsampled data
+                if j == 1:
+                    rand_ind = np.ones(y_small.size).astype(bool)
+                else:
+                    rand_ind = np.random.randint(0, y_small.size, y_small.size)
+
+                # Store the shuffled variables so you don't have to
+                # compute the shuffle multiple times
+
+                X_small_rand = X_small[rand_ind]
+                y_small_rand = y_small[rand_ind]
+                z_small_rand = z_small[rand_ind]
+                w_rand       = w[rand_ind]
+
+                #Edge case handling I:
+                #If y_err is a None, then we can't index it
+                if y_err_small is None:
+                    y_err_small_in = None
+                elif isinstance(y_err_small, np.ndarray):
+                    y_err_small_in = y_err_small[rand_ind]
+
+                # Compute fit params using linear regressions
+                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weight = w_rand)[:2]
+                dy = y_small_rand - (intercept + np.dot(X_small_rand, slope))
+
+                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, y_err_small_in, weight = w_rand)[:2]
+                dz = z_small_rand - (intercept + np.dot(X_small_rand, slope))
+
+                cov = np.cov(dy, dz, aweights = w_rand)
+                correlation[j, i] = cov[1, 0]/np.sqrt(cov[0,0] * cov[1,1])
+
+        return xline, correlation
+
+    def covariance(self, X, y, z, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
+                 fast_calc = False, kernel_type=None, kernel_width=None):
+
+        """
+        This function computes the covariance between two variables y and z,
+        conditioned on all the properties in data vector X.
+
+        Parameters
+        ----------
+        X : numpy array
+            Independent variable data vector. Can contain multiple features.
+
+        y : numpy array
+            Dependent variable data vector. Must be a one dimensional data vector.
+
+        z : numpy array
+            Dependent variable data vector. Must be a one dimensional data vector.
+
+        xrange : float
+            Value of the conditional parameter. It computes the covariance at this point.
+
+        kernel_type : string, optional
+            Rhe kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel.
+            If None it uses the pre-specified `kernel_type`
+
+        kernel_width : float, optional
+            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
+            If kernel_type = 'tophat' then 'width' is the width of the tophat kernel.
+            If None it uses the pre-specified `kernel_width`
+
+        Returns
+        -------
+        float
+             Covariance.
+        """
+
+        if len(X.shape) == 1: X = X[:, None] #Make sure X is atleast 2D
+
+        xline = setup_bins(xrange, bins, X[:, 0])
+
+        if kernel_width is not None:
+            self.kernel_width = kernel_width
+
+        if kernel_type is not None:
+            self.kernel_type = kernel_type
+
+        covariance = np.zeros([nBootstrap, xline.size])
+
+        # loop over every sample point
+        for i in range(len(xline)):
+
+            if fast_calc:
+
+                Mask = (X[:, 0] > xline[i] - self.kernel_width*3) & (X[:, 0] < xline[i] + self.kernel_width*3)
+                X_small, y_small, z_small = X[Mask, :], y[Mask], z[Mask]
+
+                if y_err is None:
+                    y_err_small = None
+                elif isinstance(y_err, np.ndarray):
+                    y_err_small = y_err[Mask]
+
+                if X_small.size == 0:
+
+                    raise ValueError("Attempting regression using 0 objects. To correct this\n" + \
+                                     "you can (i) set fast_calc = False, (ii) increase kernel width, or;\n" + \
+                                     "(iii) perform KLLR over a narrower xrange")
+
+            else:
+
+                X_small, y_small, z_small, y_err_small = X, y, z, y_err
+
+            # Generate weights at sample point
+            w = calculate_weights(X_small[:, 0], kernel_type=self.kernel_type, mu=xline[i], width=self.kernel_width)
+
+            for j in range(nBootstrap):
+
+                #First "bootstrap" is always using unsampled data
+                if j == 1:
+                    rand_ind = np.ones(y_small.size).astype(bool)
+                else:
+                    rand_ind = np.random.randint(0, y_small.size, y_small.size)
+
+                # Store the shuffled variables so you don't have to
+                # compute the shuffle multiple times
+
+                X_small_rand = X_small[rand_ind]
+                y_small_rand = y_small[rand_ind]
+                z_small_rand = z_small[rand_ind]
+                w_rand       = w[rand_ind]
+
+                #Edge case handling I:
+                #If y_err is a None, then we can't index it
+                if y_err_small is None:
+                    y_err_small_in = None
+                elif isinstance(y_err_small, np.ndarray):
+                    y_err_small_in = y_err_small[rand_ind]
+
+                # Compute fit params using linear regressions
+                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weight = w_rand)[:2]
+                dy = y_small_rand - (intercept + np.dot(X_small_rand, slope))
+
+                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, y_err_small_in, weight = w_rand)[:2]
+                dz = z_small_rand - (intercept + np.dot(X_small_rand, slope))
+
+                cov = np.cov(dy, dz, aweights = w_rand)
+                covariance[j, i] = cov[1, 0]
+
+        return xline, covariance
+
+    def residuals(self, X, y, y_err = None, xrange=None, bins=25, nBootstrap = 100, fast_calc = False, kernel_type=None, kernel_width=None):
+        """
+        This function computes the residuals about the mean relation, i.e. res = y - <y | x>.
+
+        Parameters
+        ----------
+        x : numpy array
+            Independent variable data vector. This version only support a one dimensional data vector.
+
+        y : numpy array
+            Dependent variable data vector. This version only support a one dimensional data vector.
+
+        xrange : list, optional
+            The range of regression. The first element is the min and the second element is the max.
+            If None it set it to min and max of x, i.e., `xrange = [min(x), max(x)]`
+
+        bins : int, optional
+            The numbers of bins to compute the local regression parameters. The default value is 60 bins.
+
+        kernel_type : string, optional
+            The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel.
+            If None it uses the pre-specified `kernel_type`
+
+        kernel_width : float, optional
+            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
+            If kernel_type = 'tophat' then 'width' is the width of the tophat kernel.
+            If None it uses the pre-specified `kernel_width`
+
+        Returns
+        -------
+        numpy array
+             Individual residuals.
+        """
+
+        if len(X.shape) == 1: X = X[:, None] #Make sure X is atleast 2D
+
+        # Define x_values to compute regression parameters at
+        xline = setup_bins(xrange, bins, X[:, 0])
+
+        if kernel_type is not None:
+            self.kernel_type = kernel_type
+
+        if kernel_width is not None:
+            self.kernel_width = kernel_width
+
+        #Get fit
+        output = self.fit(X, y, y_err, xrange, bins, nBootstrap, fast_calc)
+        xline, intercept, slopes, scatter = output[0], output[2], output[3], output[4]
+
+        # Edge case, where nBootstrap == 1, or X has only one column
+        # Add necessary axes for this edge case to work with code
+        if nBootstrap == 1:
+            slopes = slopes[np.newaxis, :]
+
+        if X.shape[1] == 1:
+            slopes = slopes[:, :, np.newaxis]
+
+        #Select only objects within domain of fit
+        Mask = (X[:, 0] >= np.min(xline)) & (X[:, 0] <= np.max(xline))
+
+        Masked_X, Masked_y = X[Mask], y[Mask]
+
+        intercept_interp = interp1d(xline, intercept)(Masked_X[:, 0])
+        slopes_interp    = interp1d(xline, np.swapaxes(slopes, 1, 2))(Masked_X[:, 0])
+        scatter_interp   = interp1d(xline, scatter)(Masked_X[:, 0])
+
+        mean_y_interp    = intercept_interp + np.sum(slopes_interp * Masked_X.T, axis = 1)
+
+        res = (Masked_y - mean_y_interp)/scatter_interp
+
+        if nBootstrap == 1:
+            res = np.squeeze(res, 0)
+
+        return res
