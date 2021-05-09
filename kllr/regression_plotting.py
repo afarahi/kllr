@@ -2,11 +2,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from .regression_model import kllr_model, calculate_weights, setup_bins
+from .regression_model import kllr_model, setup_bins
 
-'''
-Plotting Params
-'''
+
+#Plotting parameters
 import matplotlib as mpl
 
 mpl.rcParams['xtick.direction'], mpl.rcParams['ytick.direction'] = 'in', 'in'
@@ -16,22 +15,18 @@ mpl.rcParams['xtick.major.pad'], mpl.rcParams['xtick.minor.pad'] = 10, 10
 mpl.rcParams['ytick.major.size'], mpl.rcParams['ytick.minor.size'] = 14, 8
 mpl.rcParams['ytick.major.width'], mpl.rcParams['ytick.minor.width'] = 1.2, 0.8
 mpl.rcParams['xtick.labelsize'], mpl.rcParams['ytick.labelsize'] = 20, 20
-default_cmap = plt.cm.coolwarm
 
-'''
-Initiate Dataset:
-    All variables can be accesses and modified as seen fit by user.
-    eg. Class.fontsize.xlabel = 0
-    eg. Class.Colors = ['red', 'blue', 'aqua']
-'''
+# Parameters used in this module
+# One dictionary to store default values
+# Another that user can view/change as necessary
+Default_Params = {'default_cmap'   : plt.cm.coolwarm,
+                  'title_fontsize' : 25,
+                  'legend_fontsize': 22,
+                  'xlabel_fontsize': 30,
+                  'ylabel_fontsize': 30,
+                  'scatter_factor' : 1.0}
 
-# Dictionary that allows user to change fontsize of plots whenever necessary
-fontsize = pd.Series({
-    'title': 25,
-    'legend': 22,
-    'xlabel': 30,
-    'ylabel': 30
-})
+Params = Default_Params.copy()
 
 '''
 Plotting functions
@@ -110,9 +105,6 @@ Matplotlib.axes
 
 '''
 
-# constant (set it to np.log(10.0) if you wish to go from dex to fractional error in scatter)
-Ln10 = 1.0
-
 def setup_color(color, split_bins, cmap=None):
     """
     Takes a list of colors, and the number of split_bins and a color map to generate a color map for each split bin.
@@ -145,7 +137,7 @@ def setup_color(color, split_bins, cmap=None):
                                  'len(color) must be larger than split bins.')
 
     if cmap is None:
-        cmap = default_cmap
+        cmap = Params['default_cmap']
 
     if color is None:
         if isinstance(split_bins, int):
@@ -154,6 +146,40 @@ def setup_color(color, split_bins, cmap=None):
             color = cmap(np.linspace(0, 1, len(split_bins) - 1))
 
     return color
+
+
+def set_params(**kwargs):
+
+    '''
+    Change default params used by all functions here.
+    If input contains "reset = True", then all Params
+    will be set to their default values.
+    '''
+
+    for key in kwargs.keys():
+
+        if key in Params.keys():
+            Params[key] = kwargs[key]
+
+        elif key.lower() == 'reset':
+
+            if kwargs[key] == True:
+
+                for key in Default_Params.keys():
+                    Params[key] = Default_Params[key]
+
+        else:
+            print("Param '%s' is invalid. This was no used to update our settings."%key)
+
+
+def get_params():
+
+    '''
+    Returns the Parameter dictionary of this module
+    for user to view.
+    '''
+
+    return Params
 
 
 def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBootstrap=100,
@@ -200,6 +226,9 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
     x, y = Fit_Output[0], Fit_Output[1]
     slope, scatter = Fit_Output[3], Fit_Output[4]
 
+    # Reshape outputs so code is general even for nBootstrap = 1
+    if nBootstrap == 1: y, slope, scatter = y[None, :], slope[None, :], scatter[None, :]
+
     if xlog: x = 10 ** x
     if ylog: y = 10 ** y
 
@@ -227,14 +256,15 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
     ax[1].fill_between(x, np.percentile(slope, percentile[0], 0), np.percentile(slope, percentile[1], 0),
                        alpha=0.4, label=None, color=color)
 
-    ax[2].plot(x, np.percentile(scatter, 50, 0) * Ln10, lw=3, color=color)
-    ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0) * Ln10, np.percentile(scatter, percentile[1], 0) * Ln10,
+    ax[2].plot(x, np.percentile(scatter, 50, 0) * Params['scatter_factor'], lw=3, color=color)
+    ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0) * Params['scatter_factor'],
+                       np.percentile(scatter, percentile[1], 0) * Params['scatter_factor'],
                        alpha=0.4, label=None, color=color)
 
-    ax[0].set_ylabel(labels[1], size=fontsize.ylabel)
-    ax[1].set_ylabel(r"$\beta\,$(%s)" % labels[1],  size=fontsize.ylabel)
-    ax[2].set_ylabel(r"$\epsilon\,$(%s)" % labels[1], size=fontsize.ylabel)
-    ax[2].set_xlabel(labels[0], size=fontsize.xlabel)
+    ax[0].set_ylabel(labels[1], size=Params['ylabel_fontsize'])
+    ax[1].set_ylabel(r"$\beta\,$(%s)" % labels[1],  size=Params['ylabel_fontsize'])
+    ax[2].set_ylabel(r"$\sigma\,$(%s)" % labels[1], size=Params['ylabel_fontsize'])
+    ax[2].set_xlabel(labels[0], size=Params['xlabel_fontsize'])
 
 
     output_Data['x']  = x
@@ -247,9 +277,9 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
     output_Data['slope-'] = np.percentile(slope, percentile[0], 0)
     output_Data['slope+'] = np.percentile(slope, percentile[1], 0)
 
-    output_Data['scatter']  = np.percentile(scatter, 50, 0) * Ln10
-    output_Data['scatter-'] = np.percentile(scatter, percentile[0], 0) * Ln10
-    output_Data['scatter+'] = np.percentile(scatter, percentile[1], 0) * Ln10
+    output_Data['scatter']  = np.percentile(scatter, 50, 0) * Params['scatter_factor']
+    output_Data['scatter-'] = np.percentile(scatter, percentile[0], 0) * Params['scatter_factor']
+    output_Data['scatter+'] = np.percentile(scatter, percentile[1], 0) * Params['scatter_factor']
 
     return output_Data, ax
 
@@ -328,6 +358,9 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
         x, y = Fit_Output[0], Fit_Output[1]
         slope, scatter = Fit_Output[3], Fit_Output[4]
 
+        # Reshape outputs so code is general even for nBootstrap = 1
+        if nBootstrap == 1: y, slope, scatter = y[None, :], slope[None, :], scatter[None, :]
+
         # Format label depending on Data or Residuals mode
         if split_mode == 'Data':
             label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])
@@ -360,8 +393,8 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
         ax[1].fill_between(x, np.percentile(slope, percentile[0], 0), np.percentile(slope, percentile[1], 0),
                            alpha=0.4, label=None, color=color[i])
 
-        ax[2].plot(x, np.percentile(scatter, 50, 0) * Ln10, lw=3, color=color[i])
-        ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0) * Ln10, np.percentile(scatter, percentile[1], 0) * Ln10,
+        ax[2].plot(x, np.percentile(scatter, 50, 0) * Params['scatter_factor'], lw=3, color=color[i])
+        ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0) * Params['scatter_factor'], np.percentile(scatter, percentile[1], 0) * Params['scatter_factor'],
                            alpha=0.4, label=None, color=color[i])
 
         output_Data['Bin' + str(i)]['x']  = x
@@ -374,16 +407,16 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
         output_Data['Bin' + str(i)]['slope-'] = np.percentile(slope, percentile[0], 0)
         output_Data['Bin' + str(i)]['slope+'] = np.percentile(slope, percentile[1], 0)
 
-        output_Data['Bin' + str(i)]['scatter']  = np.percentile(scatter, 50, 0) * Ln10
-        output_Data['Bin' + str(i)]['scatter-'] = np.percentile(scatter, percentile[0], 0) * Ln10
-        output_Data['Bin' + str(i)]['scatter+'] = np.percentile(scatter, percentile[1], 0) * Ln10
+        output_Data['Bin' + str(i)]['scatter']  = np.percentile(scatter, 50, 0) * Params['scatter_factor']
+        output_Data['Bin' + str(i)]['scatter-'] = np.percentile(scatter, percentile[0], 0) * Params['scatter_factor']
+        output_Data['Bin' + str(i)]['scatter+'] = np.percentile(scatter, percentile[1], 0) * Params['scatter_factor']
 
 
-    ax[0].set_ylabel(labels[1], size=fontsize.ylabel)
-    ax[1].set_ylabel(r"$\beta\,$(%s)" % labels[1],  size=fontsize.ylabel)
-    ax[2].set_ylabel(r"$\epsilon\,$(%s)" % labels[1], size=fontsize.ylabel)
-    ax[2].set_xlabel(labels[0], size=fontsize.xlabel)
-    ax[0].legend(fontsize=fontsize.legend)
+    ax[0].set_ylabel(labels[1], size=Params['ylabel_fontsize'])
+    ax[1].set_ylabel(r"$\beta\,$(%s)" % labels[1],  size=Params['ylabel_fontsize'])
+    ax[2].set_ylabel(r"$\sigma\,$(%s)" % labels[1], size=Params['ylabel_fontsize'])
+    ax[2].set_xlabel(labels[0], size=Params['xlabel_fontsize'])
+    ax[0].legend(fontsize=Params['legend_fontsize'])
 
     return output_Data, ax
 
@@ -427,6 +460,9 @@ def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, 
 
     x, skew, kurt = function_output[0], function_output[5], function_output[6]
 
+    # Reshape outputs so code is general even for nBootstrap = 1
+    if nBootstrap == 1: skew, kurt = skew[None, :], kurt[None, :]
+
     if xlog: x = 10 ** x
 
     p = ax[0].plot(x, np.percentile(skew, 50, 0), lw=3, color=color)
@@ -452,9 +488,9 @@ def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, 
     ax[0].axhline(0, lw = 3, color = 'k', alpha = 0.05)
     ax[1].axhline(3, lw = 3, color = 'k', alpha = 0.05)
 
-    ax[0].set_ylabel(r"$\gamma\,$(%s)" % labels[1], size=fontsize.ylabel)
-    ax[1].set_ylabel(r"$\kappa\,$(%s)" % labels[1], size=fontsize.ylabel)
-    ax[1].set_xlabel(labels[0], size=fontsize.xlabel)
+    ax[0].set_ylabel(r"$\gamma\,$(%s)" % labels[1], size=Params['ylabel_fontsize'])
+    ax[1].set_ylabel(r"$\kappa\,$(%s)" % labels[1], size=Params['ylabel_fontsize'])
+    ax[1].set_xlabel(labels[0], size=Params['xlabel_fontsize'])
 
     return output_Data, ax
 
@@ -528,6 +564,9 @@ def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], sp
                                  xrange, bins, nBootstrap, fast_calc, verbose, True, True)
         x, skew, kurt = function_output[0], function_output[5], function_output[6]
 
+        # Reshape outputs so code is general even for nBootstrap = 1
+        if nBootstrap == 1: skew, kurt = skew[None, :], kurt[None, :]
+
 
         if split_mode == 'Data':
             label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])
@@ -558,10 +597,10 @@ def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], sp
     ax[0].axhline(0, lw = 3, color = 'k', alpha = 0.05)
     ax[1].axhline(3, lw = 3, color = 'k', alpha = 0.05)
 
-    ax[0].set_ylabel(r"$\gamma\,$(%s)" % labels[1], size=fontsize.ylabel)
-    ax[1].set_ylabel(r"$\kappa\,$(%s)" % labels[1], size=fontsize.ylabel)
-    ax[1].set_xlabel(labels[0], size=fontsize.xlabel)
-    ax[0].legend(fontsize=fontsize.legend)
+    ax[0].set_ylabel(r"$\gamma\,$(%s)" % labels[1], size=Params['ylabel_fontsize'])
+    ax[1].set_ylabel(r"$\kappa\,$(%s)" % labels[1], size=Params['ylabel_fontsize'])
+    ax[1].set_xlabel(labels[0], size=Params['xlabel_fontsize'])
+    ax[0].legend(fontsize=Params['legend_fontsize'])
 
     return output_Data, ax
 
@@ -649,6 +688,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None
             elif Output_mode.lower() in ['correlation', 'corr']:
                 x, cov_corr = lm.correlation(x_data, y_data, z_data, y_err_data, xrange, bins, nBootstrap, fast_calc)
 
+            if nBootstrap == 1: cov_corr = cov_corr[None, :]
 
             output_Data['x'] = x
 
@@ -687,20 +727,20 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None
                 for text in ax_tmp.texts:
                     text.set_visible(False)
 
-                ax_tmp.text(1.02, 0.5, labels[1 + j], size=fontsize.ylabel,
+                ax_tmp.text(1.02, 0.5, labels[1 + j], size=Params['ylabel_fontsize'],
                             horizontalalignment='left', verticalalignment='center', rotation=270, clip_on=False,
                             transform=ax_tmp.transAxes)
             if row == col:
-                ax_tmp.set_title(labels[1 + i], size=fontsize.xlabel)
+                ax_tmp.set_title(labels[1 + i], size=Params['xlabel_fontsize'], pad = 15)
 
             if row == matrix_size - 1:
-                ax_tmp.set_xlabel(labels[0], size=fontsize.xlabel)
+                ax_tmp.set_xlabel(labels[0], size=Params['xlabel_fontsize'])
 
             if col == 0:
                 if Output_mode.lower() in ['covariance', 'cov']:
-                    ax_tmp.set_ylabel('cov', size=fontsize.xlabel)
+                    ax_tmp.set_ylabel('cov', size=Params['xlabel_fontsize'])
                 elif Output_mode.lower() in ['correlation', 'corr']:
-                    ax_tmp.set_ylabel('r', size=fontsize.xlabel)
+                    ax_tmp.set_ylabel('r', size=Params['xlabel_fontsize'])
 
             ax_tmp.tick_params(axis='both', which='major')
 
@@ -836,6 +876,8 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                 elif Output_mode.lower() in ['correlation', 'corr']:
                     x, cov_corr = lm.correlation(x_data[split_Mask], y_data[split_Mask], z_data[split_Mask], y_err_data_in, xrange, bins, nBootstrap, fast_calc)
 
+                if nBootstrap == 1: cov_corr = cov_corr[None, :]
+
                 if split_mode == 'Data':
                     label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[i], labels[-1], split_bins[i + 1])
                 elif split_mode == 'Residuals':
@@ -875,20 +917,20 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                 for text in ax_tmp.texts:
                     text.set_visible(False)
 
-                ax_tmp.text(1.02, 0.5, labels[1 + j], size=fontsize.ylabel,
+                ax_tmp.text(1.02, 0.5, labels[1 + j], size=Params['ylabel_fontsize'],
                             horizontalalignment='left', verticalalignment='center', rotation=270, clip_on=False,
                             transform=ax_tmp.transAxes)
             if row == col:
-                ax_tmp.set_title(labels[1 + i], size=fontsize.xlabel)
+                ax_tmp.set_title(labels[1 + i], size=Params['xlabel_fontsize'], pad = 15)
 
             if row == matrix_size - 1:
-                ax_tmp.set_xlabel(labels[0], size=fontsize.xlabel)
+                ax_tmp.set_xlabel(labels[0], size=Params['xlabel_fontsize'])
 
             if col == 0:
                 if Output_mode.lower() in ['correlation', 'corr']:
-                    ax_tmp.set_ylabel('r', size=fontsize.xlabel)
+                    ax_tmp.set_ylabel('r', size=Params['xlabel_fontsize'])
                 else:
-                    ax_tmp.set_ylabel('cov', size=fontsize.xlabel)
+                    ax_tmp.set_ylabel('cov', size=Params['xlabel_fontsize'])
 
             ax_tmp.tick_params(axis='both', which='major')
 
@@ -906,7 +948,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
         if Output_mode.lower() in ['correlation', 'corr']: plt.subplots_adjust(hspace=0.04, wspace=0.04)
         else: plt.subplots_adjust(hspace=0.04)
     else:
-        plt.legend(fontsize=fontsize.legend)
+        plt.legend(fontsize=Params['legend_fontsize'])
 
     return ax
 
@@ -923,9 +965,9 @@ def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbin
     plt.grid(True)
 
     if labels is None:
-        labels = [r'$(y - \langle y \rangle)/\epsilon_{y},\,\,[y = $ %s $]$' % ylabel, 'PDF']
+        labels = [r'$(y - \langle y \rangle)/\sigma_{y},\,\,[y = $ %s $]$' % ylabel, 'PDF']
     else:
-        labels = [r'$(y - \langle y \rangle)/\epsilon_{y},\,\,[y = $ %s $]$' % labels[0], labels[1]]
+        labels = [r'$(y - \langle y \rangle)/\sigma_{y},\,\,[y = $ %s $]$' % labels[0], labels[1]]
 
     # Dictionary that will store values to be output
     output_Data = {}
@@ -943,6 +985,8 @@ def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbin
 
 
     dy = lm.residuals(x_data, y_data, y_err, xrange, bins, nBootstrap, fast_calc)
+
+    if nBootstrap == 1: dy = dy[None, :]
 
     PDFbins = setup_bins(PDFrange, PDFbins, None)
     PDFs = np.empty([nBootstrap, len(PDFbins) - 1])
@@ -963,8 +1007,8 @@ def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbin
     output_Data['PDFs']       = PDFs
     output_Data['PDFbins']    = PDFbins_plot
 
-    plt.xlabel(labels[0], size=fontsize.xlabel)
-    plt.ylabel(labels[1], size=fontsize.ylabel)
+    plt.xlabel(labels[0], size=Params['xlabel_fontsize'])
+    plt.ylabel(labels[1], size=Params['ylabel_fontsize'])
 
     return output_Data, ax
 
@@ -985,9 +1029,9 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
     plt.grid(True)
 
     if labels is None:
-        labels = [r'$(y - \langle y \rangle)/\epsilon_{y},\,\,[y = $ %s $]$' % ylabel, 'PDF', split_label]
+        labels = [r'$(y - \langle y \rangle)/\sigma_{y},\,\,[y = $ %s $]$' % ylabel, 'PDF', split_label]
     else:
-        labels = [r'$(y - \langle y \rangle)/\epsilon_{y},\,\,[y = $ %s $]$' % labels[0], labels[1], labels[2]]
+        labels = [r'$(y - \langle y \rangle)/\sigma_{y},\,\,[y = $ %s $]$' % labels[0], labels[1], labels[2]]
 
     # Dictionary that will store values to be output
     output_Data = {}
@@ -1024,6 +1068,8 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
     # Modulating LLR params for each split_bin would wash away the differences in
     # the PDFs of each split_bin
     dy = lm.residuals(x_data, y_data, y_err, None, bins, nBootstrap, fast_calc)
+
+    if nBootstrap == 1: dy = dy[None, :]
 
     #Setup xrange if it is empty
     if xrange is None:
@@ -1071,9 +1117,9 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
         output_Data['Bin' + str(i)]['PDFs']       = PDFs
         output_Data['Bin' + str(i)]['PDFbins']    = PDFbins_plot
 
-    plt.xlabel(labels[0], size=fontsize.xlabel)
-    plt.ylabel(labels[1], size=fontsize.ylabel)
-    plt.legend(fontsize=fontsize.legend)
+    plt.xlabel(labels[0], size=Params['xlabel_fontsize'])
+    plt.ylabel(labels[1], size=Params['ylabel_fontsize'])
+    plt.legend(fontsize=Params['legend_fontsize'])
 
     return output_Data, ax
 

@@ -915,6 +915,8 @@ class kllr_model():
                 cov = np.cov(dy, dz, aweights = w_rand)
                 correlation[j, i] = cov[1, 0]/np.sqrt(cov[0,0] * cov[1,1])
 
+        if nBootstrap == 1: correlation  = np.squeeze(correlation, 0)
+
         return xline, correlation
 
     def covariance(self, X, y, z, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
@@ -1025,6 +1027,8 @@ class kllr_model():
                 cov = np.cov(dy, dz, aweights = w_rand)
                 covariance[j, i] = cov[1, 0]
 
+        if nBootstrap == 1: covariance  = np.squeeze(covariance, 0)
+
         return xline, covariance
 
     def residuals(self, X, y, y_err = None, xrange=None, bins=25, nBootstrap = 100,
@@ -1098,8 +1102,7 @@ class kllr_model():
 
         res = (Masked_y - mean_y_interp)/scatter_interp
 
-        if nBootstrap == 1:
-            res = np.squeeze(res, 0)
+        if nBootstrap == 1: res = np.squeeze(res, 0)
 
         return res
 
