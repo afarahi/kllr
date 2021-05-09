@@ -28,9 +28,9 @@ Initiate Dataset:
 # Dictionary that allows user to change fontsize of plots whenever necessary
 fontsize = pd.Series({
     'title': 25,
-    'legend': 18,
-    'xlabel': 25,
-    'ylabel': 25
+    'legend': 22,
+    'xlabel': 30,
+    'ylabel': 30
 })
 
 '''
@@ -395,7 +395,7 @@ def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, 
     lm = kllr_model(kernel_type, kernel_width)
 
     if ax is None:
-        fig, ax = plt.subplots(2, figsize=(12, 14), sharex=True)
+        fig, ax = plt.subplots(2, figsize=(12, 10), sharex=True)
         fig.subplots_adjust(hspace=0.05)
 
     # Set x_scale to log. Leave y_scale as is.
@@ -466,7 +466,7 @@ def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], sp
     color = setup_color(color, split_bins, cmap)
 
     if ax is None:
-        fig, ax = plt.subplots(2, figsize=(12, 14), sharex=True)
+        fig, ax = plt.subplots(2, figsize=(12, 10), sharex=True)
         fig.subplots_adjust(hspace=0.05)
 
     # Set x_scale to log. Leave y_scale as is.
@@ -676,6 +676,11 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None
                 ax_tmp.set_ylim(ymin=-1, ymax=1)
 
             if col == row:
+
+                #Remove any text that exists already
+                for text in ax_tmp.texts:
+                    text.set_visible(False)
+
                 ax_tmp.text(1.02, 0.5, labels[1 + j], size=fontsize.ylabel,
                             horizontalalignment='left', verticalalignment='center', rotation=270, clip_on=False,
                             transform=ax_tmp.transAxes)
@@ -691,7 +696,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None
                 elif Output_mode.lower() in ['correlation', 'corr']:
                     ax_tmp.set_ylabel('r', size=fontsize.xlabel)
 
-            ax_tmp.tick_params(axis='both', which='major', labelsize=12)
+            ax_tmp.tick_params(axis='both', which='major')
 
             row += 1
 
@@ -859,6 +864,11 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                 ax_tmp.set_ylim(ymin=-1, ymax=1)
 
             if col == row:
+
+                #Remove any text that exists already
+                for text in ax_tmp.texts:
+                    text.set_visible(False)
+
                 ax_tmp.text(1.02, 0.5, labels[1 + j], size=fontsize.ylabel,
                             horizontalalignment='left', verticalalignment='center', rotation=270, clip_on=False,
                             transform=ax_tmp.transAxes)
@@ -874,7 +884,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                 else:
                     ax_tmp.set_ylabel('cov', size=fontsize.xlabel)
 
-            ax_tmp.tick_params(axis='both', which='major', labelsize=12)
+            ax_tmp.tick_params(axis='both', which='major')
 
             row += 1
 

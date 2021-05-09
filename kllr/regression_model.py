@@ -738,7 +738,7 @@ class kllr_model():
 
             if fast_calc:
 
-                Mask = (X[:, 0] > xline[i] - self.kernel_width*3) & (X[:, 0] < xline[i] + self.kernel_width*3)
+                Mask = (X[:, 0] > xline[i] - kernel_width[i]*3) & (X[:, 0] < xline[i] + kernel_width[i]*3)
                 X_small, y_small = X[Mask, :], y[Mask]
 
                 if y_err is None:
@@ -845,8 +845,8 @@ class kllr_model():
         xline = setup_bins(xrange, bins, X[:, 0])
         kernel_width = setup_kernel_width(kernel_width, self.kernel_width, xline.size)
 
-        if kernel_type is not None:
-            self.kernel_type = kernel_type
+        if kernel_type is None:
+            kernel_type = self.kernel_type
 
         correlation = np.zeros([nBootstrap, xline.size])
 
@@ -855,7 +855,7 @@ class kllr_model():
 
             if fast_calc:
 
-                Mask = (X[:, 0] > xline[i] - self.kernel_width*3) & (X[:, 0] < xline[i] + self.kernel_width*3)
+                Mask = (X[:, 0] > xline[i] - kernel_width[i]*3) & (X[:, 0] < xline[i] + kernel_width[i]*3)
                 X_small, y_small, z_small = X[Mask, :], y[Mask], z[Mask]
 
                 if y_err is None:
@@ -952,8 +952,8 @@ class kllr_model():
         xline = setup_bins(xrange, bins, X[:, 0])
         kernel_width = setup_kernel_width(kernel_width, self.kernel_width, xline.size)
 
-        if kernel_type is not None:
-            self.kernel_type = kernel_type
+        if kernel_type is None:
+            kernel_type = self.kernel_type
 
         covariance = np.zeros([nBootstrap, xline.size])
 
@@ -962,7 +962,7 @@ class kllr_model():
 
             if fast_calc:
 
-                Mask = (X[:, 0] > xline[i] - self.kernel_width*3) & (X[:, 0] < xline[i] + self.kernel_width*3)
+                Mask = (X[:, 0] > xline[i] - kernel_width[i]*3) & (X[:, 0] < xline[i] + kernel_width[i]*3)
                 X_small, y_small, z_small = X[Mask, :], y[Mask], z[Mask]
 
                 if y_err is None:
@@ -1058,8 +1058,8 @@ class kllr_model():
         xline = setup_bins(xrange, bins, X[:, 0])
         kernel_width = setup_kernel_width(kernel_width, self.kernel_width, xline.size)
 
-        if kernel_type is not None:
-            self.kernel_type = kernel_type
+        if kernel_type is None:
+            kernel_type = self.kernel_type
 
         #Get fit
         output = self.fit(X, y, y_err, xrange, bins, nBootstrap, fast_calc,
