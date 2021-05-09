@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from scipy import stats
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from .regression_model import kllr_model, setup_bins
@@ -954,7 +955,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
 
 
 def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100,
-                  verbose = True, kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.], fast_calc = False,
+                  verbose = True, return_moments = False, kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.], fast_calc = False,
                   labels=None, color=None, ax=None):
 
     lm = kllr_model(kernel_type, kernel_width)
@@ -994,6 +995,13 @@ def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbin
     for i in range(nBootstrap):
         PDFs[i, :] = np.histogram(dy[i, :], bins = PDFbins, range = PDFrange, density = True)[0]
 
+    if return_moments:
+
+        mean = np.mean(dy, axis = 1)
+        sdev = np.std(dy, axis = 1)
+        skew = stats.skew(dy, axis = 1)
+        kurt = stats.kurtosis(dy, axis = 1, fisher = False)
+
     PDFbins_plot = (PDFbins[1:] + PDFbins[:-1]) / 2.
 
     p = plt.plot(PDFbins_plot, np.percentile(PDFs, 50, 0), lw=3, color=color)
@@ -1007,6 +1015,23 @@ def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbin
     output_Data['PDFs']       = PDFs
     output_Data['PDFbins']    = PDFbins_plot
 
+    if return_moments:
+        output_Data['mean']  = np.percentile(mean, 50)
+        output_Data['mean-'] = np.percentile(mean, percentile[0])
+        output_Data['mean+'] = np.percentile(mean, percentile[1])
+
+        output_Data['sdev']  = np.percentile(sdev, 50)
+        output_Data['sdev-'] = np.percentile(sdev, percentile[0])
+        output_Data['sdev+'] = np.percentile(sdev, percentile[1])
+
+        output_Data['skew']  = np.percentile(skew, 50)
+        output_Data['skew-'] = np.percentile(skew, percentile[0])
+        output_Data['skew+'] = np.percentile(skew, percentile[1])
+
+        output_Data['kurt']  = np.percentile(kurt, 50)
+        output_Data['kurt-'] = np.percentile(kurt, percentile[0])
+        output_Data['kurt+'] = np.percentile(kurt, percentile[1])
+
     plt.xlabel(labels[0], size=Params['xlabel_fontsize'])
     plt.ylabel(labels[1], size=Params['ylabel_fontsize'])
 
@@ -1014,7 +1039,8 @@ def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbin
 
 
 def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mode='Data', y_err = None, bins=25, xrange=None,
-                        PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100, verbose = True, kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
+                        PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100, verbose = True, return_moments = False,
+                        kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
                         percentile=[16., 84.], labels=None, color=None, cmap = None, ax=None):
 
     check_attributes(split_bins=split_bins, split_mode=split_mode)
@@ -1100,6 +1126,13 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
         for j in range(nBootstrap):
             PDFs[j, :] = np.histogram(dy[j, split_Mask], bins = PDFbins, range = PDFrange, density = True)[0]
 
+        if return_moments:
+
+            mean = np.mean(dy, axis = 1)
+            sdev = np.std(dy, axis = 1)
+            skew = stats.skew(dy, axis = 1)
+            kurt = stats.kurtosis(dy, axis = 1, fisher = False)
+
         PDFbins_plot = (PDFbins[1:] + PDFbins[:-1]) / 2.
 
         if split_mode == 'Data':
@@ -1116,6 +1149,23 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
         output_Data['Bin' + str(i)]['Residuals+'] = np.percentile(dy, percentile[1], 0)[split_Mask]
         output_Data['Bin' + str(i)]['PDFs']       = PDFs
         output_Data['Bin' + str(i)]['PDFbins']    = PDFbins_plot
+
+        if return_moments:
+            output_Data['Bin' + str(i)]['mean']  = np.percentile(mean, 50)
+            output_Data['Bin' + str(i)]['mean-'] = np.percentile(mean, percentile[0])
+            output_Data['Bin' + str(i)]['mean+'] = np.percentile(mean, percentile[1])
+
+            output_Data['Bin' + str(i)]['sdev']  = np.percentile(sdev, 50)
+            output_Data['Bin' + str(i)]['sdev-'] = np.percentile(sdev, percentile[0])
+            output_Data['Bin' + str(i)]['sdev+'] = np.percentile(sdev, percentile[1])
+
+            output_Data['Bin' + str(i)]['skew']  = np.percentile(skew, 50)
+            output_Data['Bin' + str(i)]['skew-'] = np.percentile(skew, percentile[0])
+            output_Data['Bin' + str(i)]['skew+'] = np.percentile(skew, percentile[1])
+
+            output_Data['Bin' + str(i)]['kurt']  = np.percentile(kurt, 50)
+            output_Data['Bin' + str(i)]['kurt-'] = np.percentile(kurt, percentile[0])
+            output_Data['Bin' + str(i)]['kurt+'] = np.percentile(kurt, percentile[1])
 
     plt.xlabel(labels[0], size=Params['xlabel_fontsize'])
     plt.ylabel(labels[1], size=Params['ylabel_fontsize'])
