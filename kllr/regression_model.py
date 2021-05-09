@@ -643,7 +643,7 @@ class kllr_model():
         return intercept, slopes, sig, skew, kurt
 
     def fit(self, X, y, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
-            fast_calc = False, compute_skewness = False, compute_kurtosis = False,
+            fast_calc = False, verbose = False, compute_skewness = False, compute_kurtosis = False,
             kernel_type = None, kernel_width = None):
 
         """
@@ -733,8 +733,11 @@ class kllr_model():
         if X.shape[1] > 1:
             yline = None
 
+        if verbose: iterator = tqdm(range(xline.size))
+        else: iterator = range(xline.size)
+
         # loop over every sample point
-        for i in range(len(xline)):
+        for i in iterator:
 
             if fast_calc:
 
@@ -748,9 +751,9 @@ class kllr_model():
 
                 if X_small.size == 0:
 
-                    raise ValueError("Attempting regression using 0 objects. To correct this\n" + \
+                    raise ValueError("Attempting regression using 0 objects at x = %0.2f. To correct this\n"%xline[i] + \
                                      "you can (i) set fast_calc = False, (ii) increase kernel width, or;\n" + \
-                                     "(iii) perform KLLR over a narrower xrange")
+                                     "(iii) perform KLLR over an xrange that excludes x = %0.2f"%xline[i])
 
             else:
 
@@ -805,7 +808,7 @@ class kllr_model():
         return xline, yline, intercept, slopes, scatter, skew, kurt
 
     def correlation(self, X, y, z, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
-                    fast_calc = False, kernel_type=None, kernel_width=None):
+                    fast_calc = False, verbose = False, kernel_type=None, kernel_width=None):
 
         """
         This function computes the correlatio between two variables y and z,
@@ -850,8 +853,11 @@ class kllr_model():
 
         correlation = np.zeros([nBootstrap, xline.size])
 
+        if verbose: iterator = tqdm(range(xline.size))
+        else: iterator = range(xline.size)
+
         # loop over every sample point
-        for i in range(len(xline)):
+        for i in iterator:
 
             if fast_calc:
 
@@ -865,9 +871,9 @@ class kllr_model():
 
                 if X_small.size == 0:
 
-                    raise ValueError("Attempting regression using 0 objects. To correct this\n" + \
+                    raise ValueError("Attempting regression using 0 objects at x = %0.2f. To correct this\n"%xline[i] + \
                                      "you can (i) set fast_calc = False, (ii) increase kernel width, or;\n" + \
-                                     "(iii) perform KLLR over a narrower xrange")
+                                     "(iii) perform KLLR over an xrange that excludes x = %0.2f"%xline[i])
 
             else:
 
@@ -912,7 +918,7 @@ class kllr_model():
         return xline, correlation
 
     def covariance(self, X, y, z, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
-                 fast_calc = False, kernel_type=None, kernel_width=None):
+                   fast_calc = False, verbose = False, kernel_type=None, kernel_width=None):
 
         """
         This function computes the covariance between two variables y and z,
@@ -957,8 +963,11 @@ class kllr_model():
 
         covariance = np.zeros([nBootstrap, xline.size])
 
+        if verbose: iterator = tqdm(range(xline.size))
+        else: iterator = range(xline.size)
+
         # loop over every sample point
-        for i in range(len(xline)):
+        for i in iterator:
 
             if fast_calc:
 
@@ -972,9 +981,9 @@ class kllr_model():
 
                 if X_small.size == 0:
 
-                    raise ValueError("Attempting regression using 0 objects. To correct this\n" + \
+                    raise ValueError("Attempting regression using 0 objects at x = %0.2f. To correct this\n"%xline[i] + \
                                      "you can (i) set fast_calc = False, (ii) increase kernel width, or;\n" + \
-                                     "(iii) perform KLLR over a narrower xrange")
+                                     "(iii) perform KLLR over an xrange that excludes x = %0.2f"%xline[i])
 
             else:
 
@@ -1018,7 +1027,8 @@ class kllr_model():
 
         return xline, covariance
 
-    def residuals(self, X, y, y_err = None, xrange=None, bins=25, nBootstrap = 100, fast_calc = False, kernel_type=None, kernel_width=None):
+    def residuals(self, X, y, y_err = None, xrange=None, bins=25, nBootstrap = 100,
+                  fast_calc = False, verbose = False, kernel_type=None, kernel_width=None):
         """
         This function computes the residuals about the mean relation, i.e. res = y - <y | x>.
 
@@ -1062,7 +1072,7 @@ class kllr_model():
             kernel_type = self.kernel_type
 
         #Get fit
-        output = self.fit(X, y, y_err, xrange, bins, nBootstrap, fast_calc,
+        output = self.fit(X, y, y_err, xrange, bins, nBootstrap, fast_calc, verbose,
                           kernel_type = kernel_type, kernel_width = kernel_width)
 
         xline, intercept, slopes, scatter = output[0], output[2], output[3], output[4]
@@ -1092,3 +1102,54 @@ class kllr_model():
             res = np.squeeze(res, 0)
 
         return res
+
+    def outlier_rejection(self, X, Y, sigma, xrange=None, bins=25,
+                          fast_calc = False, verbose = False, kernel_type=None, kernel_width=None):
+        """
+        This simple function uses the normalized residuals, i.e. how many sigma an object is
+        from the mean relation < y | X >, to perform outlier rejection. Any object that lives beyond
+        a certain sigma range from the mean relation is rejected.
+
+        Parameters
+        ----------
+        X : numpy array
+            Independent variable data vector. Can have multiple features.
+
+        Y : numpy array
+            Dependent variable data vector. Can have multiple features but the outlier
+            filtering is run on one feature at a time, and the masks are combined at the end.
+
+        xrange : list, optional
+            The range of regression. The first element is the min and the second element is the max.
+            If None it set it to min and max of x, i.e., `xrange = [min(x), max(x)]`
+
+        bins : int, optional
+            The numbers of bins to compute the local regression parameters. The default value is 60 bins.
+
+        kernel_type : string, optional
+            The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel.
+            If None it uses the pre-specified `kernel_type`
+
+        kernel_width : float, optional
+            If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
+            If kernel_type = 'tophat' then 'width' is the width of the tophat kernel.
+            If None it uses the pre-specified `kernel_width`
+
+        Returns
+        -------
+        1D numpy array
+             Mask that is True if object is within sigma range, and false otherwise.
+             Same length as X and y. If y has multiple features, then a mask is computed for
+             each feature as combined at the end --- an entry in the final mask is True only if
+             all features in y lie within the sigma range.
+        """
+
+        if len(Y.shape) == 1: Y = Y[:, None]
+
+        Mask = np.ones(len(Y)).astype(bool)
+
+        for i in range(Y.shape[1]):
+            res  = self.residuals(X, Y[:, i], None, xrange, bins, 1, fast_calc, verbose, kernel_type, kernel_width)
+            Mask = Mask & (np.abs(res) < sigma)
+
+        return Mask

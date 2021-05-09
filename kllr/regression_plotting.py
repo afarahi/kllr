@@ -156,8 +156,8 @@ def setup_color(color, split_bins, cmap=None):
     return color
 
 
-def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None,
-                     nBootstrap=100, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
+def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBootstrap=100,
+                     verbose = True, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
                      show_data=False, xlog=False, ylog=False, color=None, labels=None, ax=None):
 
     lm = kllr_model(kernel_type, kernel_width)
@@ -195,7 +195,7 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None,
         y_err_data = None
 
     #Perform fit
-    Fit_Output = lm.fit(x_data, y_data, y_err_data, xrange, bins, nBootstrap, fast_calc = fast_calc)
+    Fit_Output = lm.fit(x_data, y_data, y_err_data, xrange, bins, nBootstrap, fast_calc, verbose)
 
     x, y = Fit_Output[0], Fit_Output[1]
     slope, scatter = Fit_Output[3], Fit_Output[4]
@@ -255,7 +255,7 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None,
 
 
 def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mode = 'Data', y_err=None, bins=25, xrange=None,
-                           nBootstrap=100, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
+                           nBootstrap=100, verbose = True, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
                            show_data=False, xlog=False, ylog=False, color=None, labels=None, cmap = None, ax=None):
 
     lm    = kllr_model(kernel_type, kernel_width)
@@ -323,7 +323,7 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
             y_err_data_in = y_err_data[split_Mask]
 
         # Run KLLR using JUST the subset
-        Fit_Output = lm.fit(x_data[split_Mask], y_data[split_Mask], y_err_data_in, xrange, bins, nBootstrap, fast_calc = fast_calc)
+        Fit_Output = lm.fit(x_data[split_Mask], y_data[split_Mask], y_err_data_in, xrange, bins, nBootstrap, fast_calc, verbose)
 
         x, y = Fit_Output[0], Fit_Output[1]
         slope, scatter = Fit_Output[3], Fit_Output[4]
@@ -388,9 +388,9 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
     return output_Data, ax
 
 
-def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, nBootstrap=100,
+def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, nBootstrap=100, verbose = True,
                         kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.], fast_calc = False,
-                        xlog=False, labels=None, color=None, verbose=True, ax=None):
+                        xlog=False, labels=None, color=None, ax=None):
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -423,7 +423,7 @@ def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, 
 
     # xline is always the same regardless of bootstrap so don't need 2D array for it.
     # yline, slope, and scatter are not needed for plotting in this module
-    function_output = lm.fit(x_data, y_data, y_err_data, compute_skewness = True, compute_kurtosis = True, fast_calc = fast_calc)
+    function_output = lm.fit(x_data, y_data, y_err_data, xrange, bins, nBootstrap, fast_calc, verbose, True, True)
 
     x, skew, kurt = function_output[0], function_output[5], function_output[6]
 
@@ -449,6 +449,9 @@ def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, 
     output_Data['kurt-'] = np.percentile(kurt, percentile[0], axis=0)
     output_Data['kurt+'] = np.percentile(kurt, percentile[1], axis=0)
 
+    ax[0].axhline(0, lw = 3, color = 'k', alpha = 0.05)
+    ax[1].axhline(3, lw = 3, color = 'k', alpha = 0.05)
+
     ax[0].set_ylabel(r"$\gamma\,$(%s)" % labels[1], size=fontsize.ylabel)
     ax[1].set_ylabel(r"$\kappa\,$(%s)" % labels[1], size=fontsize.ylabel)
     ax[1].set_xlabel(labels[0], size=fontsize.xlabel)
@@ -457,8 +460,8 @@ def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, 
 
 
 def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mode='Data', y_err = None, bins=25,
-                              xrange=None, nBootstrap=100, kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
-                              xlog=False, percentile=[16., 84.], color=None, labels=None, verbose=True, cmap = None, ax=None):
+                              xrange=None, nBootstrap=100, verbose = True, kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
+                              xlog=False, percentile=[16., 84.], color=None, labels=None, cmap = None, ax=None):
 
     check_attributes(split_bins=split_bins, split_mode=split_mode)
 
@@ -522,7 +525,7 @@ def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], sp
             y_err_data_in = y_err_data[split_Mask]
 
         function_output = lm.fit(x_data[split_Mask], y_data[split_Mask], y_err_data_in,
-                                 xrange, bins, nBootstrap, compute_skewness = True, compute_kurtosis = True, fast_calc = fast_calc)
+                                 xrange, bins, nBootstrap, fast_calc, verbose, True, True)
         x, skew, kurt = function_output[0], function_output[5], function_output[6]
 
 
@@ -552,6 +555,9 @@ def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], sp
         output_Data['Bin' + str(i)]['kurt-'] = np.percentile(kurt, percentile[0], axis=0)
         output_Data['Bin' + str(i)]['kurt+'] = np.percentile(kurt, percentile[1], axis=0)
 
+    ax[0].axhline(0, lw = 3, color = 'k', alpha = 0.05)
+    ax[1].axhline(3, lw = 3, color = 'k', alpha = 0.05)
+
     ax[0].set_ylabel(r"$\gamma\,$(%s)" % labels[1], size=fontsize.ylabel)
     ax[1].set_ylabel(r"$\kappa\,$(%s)" % labels[1], size=fontsize.ylabel)
     ax[1].set_xlabel(labels[0], size=fontsize.xlabel)
@@ -560,10 +566,10 @@ def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], sp
     return output_Data, ax
 
 
-def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None, nBootstrap=100,
+def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None, nBootstrap=100, verbose = True,
                          Output_mode='Covariance', kernel_type='gaussian', kernel_width=0.2,
                          percentile=[16., 84.], xlog=False, labels=None, color=None, fast_calc = False,
-                         verbose=True, ax=None):
+                         ax=None):
 
     check_attributes(Output_mode=Output_mode)
 
@@ -673,7 +679,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None
 
             if Output_mode.lower() in ['correlation', 'corr']:
                 ax_tmp.axhline(y=0.0, color='k', lw=2)
-                ax_tmp.set_ylim(ymin=-1, ymax=1)
+                ax_tmp.set_ylim(ymin=-1.05, ymax=1.05)
 
             if col == row:
 
@@ -707,9 +713,9 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None
 
 
 def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], y_err = None, Output_mode='Covariance',
-                               split_mode='Data', bins=25, xrange=None, nBootstrap=100, fast_calc = False,
+                               split_mode='Data', bins=25, xrange=None, nBootstrap=100, verbose = True, fast_calc = False,
                                kernel_type='gaussian', kernel_width=0.2, xlog=False, percentile=[16., 84.],
-                               labels=None, color=None, verbose=True, ax=None):
+                               labels=None, color=None, ax=None):
 
     check_attributes(split_bins=split_bins, Output_mode=Output_mode, split_mode=split_mode)
 
@@ -861,7 +867,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
 
             if Output_mode.lower() in ['correlation', 'corr']:
                 ax_tmp.axhline(y=0.0, color='k', lw=2)
-                ax_tmp.set_ylim(ymin=-1, ymax=1)
+                ax_tmp.set_ylim(ymin=-1.05, ymax=1.05)
 
             if col == row:
 
@@ -906,8 +912,8 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
 
 
 def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100,
-                  kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.], fast_calc = False,
-                  labels=None, color=None, verbose=True, ax=None):
+                  verbose = True, kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.], fast_calc = False,
+                  labels=None, color=None, ax=None):
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -964,8 +970,8 @@ def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbin
 
 
 def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mode='Data', y_err = None, bins=25, xrange=None,
-                        PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100, kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
-                        percentile=[16., 84.], labels=None, color=None, verbose=True, cmap = None, ax=None):
+                        PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100, verbose = True, kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
+                        percentile=[16., 84.], labels=None, color=None, cmap = None, ax=None):
 
     check_attributes(split_bins=split_bins, split_mode=split_mode)
 
