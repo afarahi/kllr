@@ -226,6 +226,7 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
 
     x, y = Fit_Output[0], Fit_Output[1]
     slope, scatter = Fit_Output[3], Fit_Output[4]
+    scatter = scatter * Params['scatter_factor']
 
     # Reshape outputs so code is general even for nBootstrap = 1
     if nBootstrap == 1: y, slope, scatter = y[None, :], slope[None, :], scatter[None, :]
@@ -257,9 +258,8 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
     ax[1].fill_between(x, np.percentile(slope, percentile[0], 0), np.percentile(slope, percentile[1], 0),
                        alpha=0.4, label=None, color=color)
 
-    ax[2].plot(x, np.percentile(scatter, 50, 0) * Params['scatter_factor'], lw=3, color=color)
-    ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0) * Params['scatter_factor'],
-                       np.percentile(scatter, percentile[1], 0) * Params['scatter_factor'],
+    ax[2].plot(x, np.percentile(scatter, 50, 0) , lw=3, color=color)
+    ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0), np.percentile(scatter, percentile[1], 0),
                        alpha=0.4, label=None, color=color)
 
     ax[0].set_ylabel(labels[1], size=Params['ylabel_fontsize'])
@@ -278,9 +278,9 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
     output_Data['slope-'] = np.percentile(slope, percentile[0], 0)
     output_Data['slope+'] = np.percentile(slope, percentile[1], 0)
 
-    output_Data['scatter']  = np.percentile(scatter, 50, 0) * Params['scatter_factor']
-    output_Data['scatter-'] = np.percentile(scatter, percentile[0], 0) * Params['scatter_factor']
-    output_Data['scatter+'] = np.percentile(scatter, percentile[1], 0) * Params['scatter_factor']
+    output_Data['scatter']  = np.percentile(scatter, 50, 0)
+    output_Data['scatter-'] = np.percentile(scatter, percentile[0], 0)
+    output_Data['scatter+'] = np.percentile(scatter, percentile[1], 0)
 
     return output_Data, ax
 
@@ -359,6 +359,8 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
         x, y = Fit_Output[0], Fit_Output[1]
         slope, scatter = Fit_Output[3], Fit_Output[4]
 
+        scatter = scatter * Params['scatter_factor']
+
         # Reshape outputs so code is general even for nBootstrap = 1
         if nBootstrap == 1: y, slope, scatter = y[None, :], slope[None, :], scatter[None, :]
 
@@ -394,8 +396,8 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
         ax[1].fill_between(x, np.percentile(slope, percentile[0], 0), np.percentile(slope, percentile[1], 0),
                            alpha=0.4, label=None, color=color[i])
 
-        ax[2].plot(x, np.percentile(scatter, 50, 0) * Params['scatter_factor'], lw=3, color=color[i])
-        ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0) * Params['scatter_factor'], np.percentile(scatter, percentile[1], 0) * Params['scatter_factor'],
+        ax[2].plot(x, np.percentile(scatter, 50, 0), lw=3, color=color[i])
+        ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0), np.percentile(scatter, percentile[1], 0),
                            alpha=0.4, label=None, color=color[i])
 
         output_Data['Bin' + str(i)]['x']  = x
@@ -408,9 +410,9 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
         output_Data['Bin' + str(i)]['slope-'] = np.percentile(slope, percentile[0], 0)
         output_Data['Bin' + str(i)]['slope+'] = np.percentile(slope, percentile[1], 0)
 
-        output_Data['Bin' + str(i)]['scatter']  = np.percentile(scatter, 50, 0) * Params['scatter_factor']
-        output_Data['Bin' + str(i)]['scatter-'] = np.percentile(scatter, percentile[0], 0) * Params['scatter_factor']
-        output_Data['Bin' + str(i)]['scatter+'] = np.percentile(scatter, percentile[1], 0) * Params['scatter_factor']
+        output_Data['Bin' + str(i)]['scatter']  = np.percentile(scatter, 50, 0)
+        output_Data['Bin' + str(i)]['scatter-'] = np.percentile(scatter, percentile[0], 0)
+        output_Data['Bin' + str(i)]['scatter+'] = np.percentile(scatter, percentile[1], 0)
 
 
     ax[0].set_ylabel(labels[1], size=Params['ylabel_fontsize'])
@@ -686,6 +688,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None
 
             if Output_mode.lower() in ['covariance', 'cov']:
                 x, cov_corr = lm.covariance(x_data, y_data, z_data, y_err_data, xrange, bins, nBootstrap, fast_calc)
+                cov_corr    = cov_corr * Params['scatter_factor']**2
             elif Output_mode.lower() in ['correlation', 'corr']:
                 x, cov_corr = lm.correlation(x_data, y_data, z_data, y_err_data, xrange, bins, nBootstrap, fast_calc)
 
@@ -874,6 +877,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
 
                 if Output_mode.lower() in ['covariance', 'cov']:
                     x, cov_corr = lm.covariance(x_data[split_Mask], y_data[split_Mask], z_data[split_Mask], y_err_data_in, xrange, bins, nBootstrap, fast_calc)
+                    cov_corr    = cov_corr * Params['scatter_factor']**2
                 elif Output_mode.lower() in ['correlation', 'corr']:
                     x, cov_corr = lm.correlation(x_data[split_Mask], y_data[split_Mask], z_data[split_Mask], y_err_data_in, xrange, bins, nBootstrap, fast_calc)
 
