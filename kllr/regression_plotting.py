@@ -679,16 +679,19 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_errs = None, bins=25, xrange=Non
             Mask = clean_vector(x_data) & clean_vector(y_data) & clean_vector(z_data)
             x_data, y_data, z_data = x_data[Mask], y_data[Mask], z_data[Mask]
 
-            # Check if y_err is provided and load it
-            if isinstance(y_errs[i], str):
-                y_err_data = df[y_errs[i]].to_numpy()[Mask]
-            else:
+            if y_errs is None:
                 y_err_data = None
-
-            if isinstance(y_errs[j], str):
-                z_err_data = df[y_errs[j]].to_numpy()[Mask]
-            else:
                 z_err_data = None
+            else:
+                if isinstance(y_errs[i], str):
+                    y_err_data = df[y_errs[i]].to_numpy()[Mask]
+                else:
+                    y_err_data = None
+
+                if isinstance(y_errs[j], str):
+                    z_err_data = df[y_errs[j]].to_numpy()[Mask]
+                else:
+                    z_err_data = None
 
             if Output_mode.lower() in ['covariance', 'cov']:
                 x, cov_corr = lm.covariance(x_data, y_data, z_data, y_err_data, z_err_data, xrange, bins, nBootstrap, fast_calc)
@@ -846,15 +849,19 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
             x_data, y_data, z_data, split_data = x_data[Mask], y_data[Mask], z_data[Mask], split_data[Mask]
 
             # Check if y_err is provided and load it
-            if isinstance(y_errs[i], str):
-                y_err_data = df[y_errs[i]].to_numpy()[Mask]
-            else:
+            if y_errs is None:
                 y_err_data = None
-
-            if isinstance(y_errs[j], str):
-                z_err_data = df[y_errs[j]].to_numpy()[Mask]
-            else:
                 z_err_data = None
+            else:
+                if isinstance(y_errs[i], str):
+                    y_err_data = df[y_errs[i]].to_numpy()[Mask]
+                else:
+                    y_err_data = None
+
+                if isinstance(y_errs[j], str):
+                    z_err_data = df[y_errs[j]].to_numpy()[Mask]
+                else:
+                    z_err_data = None
 
             # Choose bin edges for binning data
             if (isinstance(split_bins, int)):
@@ -871,59 +878,59 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
             # Define Output_Data variable to store all computed data that is then plotted
             output_Data = {'Bin' + str(i): {} for i in range(len(split_bins) - 1)}
 
-            for i in range(len(split_bins) - 1):
+            for k in range(len(split_bins) - 1):
 
                 if split_mode == 'Data':
-                    split_Mask = (split_data <= split_bins[i + 1]) & (split_data > split_bins[i])
+                    split_Mask = (split_data <= split_bins[k + 1]) & (split_data > split_bins[k])
                 elif split_mode == 'Residuals':
-                    split_Mask = (split_res < split_bins[i + 1]) & (split_res > split_bins[i])
+                    split_Mask = (split_res <= split_bins[k + 1]) & (split_res > split_bins[k])
 
                 #Edge case for y_err
-                if y_err is None:
+                if y_err_data is None:
                     y_err_data_in = None
                 else:
                     y_err_data_in = y_err_data[split_Mask]
 
-                if z_err is None:
+                if z_err_data is None:
                     z_err_data_in = None
                 else:
                     z_err_data_in = z_err_data[split_Mask]
 
                 if Output_mode.lower() in ['covariance', 'cov']:
-                    x, cov_corr = lm.covariance(x_data, y_data, z_data, y_err_data, z_err_data, xrange, bins, nBootstrap, fast_calc)
+                    x, cov_corr = lm.covariance(x_data[split_Mask], y_data[split_Mask], z_data[split_Mask], y_err_data_in, z_err_data_in, xrange, bins, nBootstrap, fast_calc)
                     cov_corr    = cov_corr * Params['scatter_factor']**2
 
                 elif Output_mode.lower() in ['correlation', 'corr']:
-                    x, cov_corr = lm.correlation(x_data, y_data, z_data, y_err_data, z_err_data, xrange, bins, nBootstrap, fast_calc)
+                    x, cov_corr = lm.correlation(x_data[split_Mask], y_data[split_Mask], z_data[split_Mask], y_err_data_in, z_err_data_in, xrange, bins, nBootstrap, fast_calc)
 
                 if nBootstrap == 1: cov_corr = cov_corr[None, :]
 
                 if split_mode == 'Data':
-                    label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[i], labels[-1], split_bins[i + 1])
+                    label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[k], labels[-1], split_bins[k + 1])
                 elif split_mode == 'Residuals':
-                    label = r'$%0.2f < {\rm res}($%s$) < %0.2f$' % (split_bins[i], labels[-1], split_bins[i + 1])
+                    label = r'$%0.2f < {\rm res}($%s$) < %0.2f$' % (split_bins[k], labels[-1], split_bins[k + 1])
 
                 if xlog:
                     x = 10 ** (x)
                     ax_tmp.set_xscale('log')
 
                 ax_tmp.axis('on')
-                ax_tmp.plot(x, np.percentile(cov_corr, 50, 0), lw=3, color=color[i], label=label)
+                ax_tmp.plot(x, np.percentile(cov_corr, 50, 0), lw=3, color=color[k], label=label)
                 ax_tmp.fill_between(x,
                                     np.percentile(cov_corr, percentile[0], 0),
                                     np.percentile(cov_corr, percentile[1], 0),
-                                    alpha=0.4, label=None, color=color[i])
+                                    alpha=0.4, label=None, color=color[k])
 
-                output_Data['Bin' + str(i)]['x'] = x
+                output_Data['Bin' + str(k)]['x'] = x
 
                 if Output_mode.lower() in ['covariance', 'cov']:
                     name = 'cov'
                 elif Output_mode.lower() in ['correlation', 'corr']:
                     name = 'corr'
 
-                output_Data['Bin' + str(i)]['%s_%s_%s'%(name, ylabel, zlabel)]  = np.percentile(cov_corr, 50, 0)
-                output_Data['Bin' + str(i)]['%s_%s_%s-'%(name, ylabel, zlabel)] = np.percentile(cov_corr, percentile[0], 0)
-                output_Data['Bin' + str(i)]['%s_%s_%s+'%(name, ylabel, zlabel)] = np.percentile(cov_corr, percentile[1], 0)
+                output_Data['Bin' + str(k)]['%s_%s_%s'%(name, ylabel, zlabel)]  = np.percentile(cov_corr, 50, 0)
+                output_Data['Bin' + str(k)]['%s_%s_%s-'%(name, ylabel, zlabel)] = np.percentile(cov_corr, percentile[0], 0)
+                output_Data['Bin' + str(k)]['%s_%s_%s+'%(name, ylabel, zlabel)] = np.percentile(cov_corr, percentile[1], 0)
 
             ax_tmp.grid(True)
 
@@ -970,7 +977,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
     else:
         plt.legend(fontsize=Params['legend_fontsize'])
 
-    return ax
+    return output_Data, ax
 
 
 def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100,
