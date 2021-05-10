@@ -216,7 +216,7 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
 
     # Check if y_err is provided and load it
     if isinstance(y_err, str):
-        y_err_data = np.array(df[y_err])[Mask]
+        y_err_data = df[y_err].to_numpy()[Mask]
 
     else:
         y_err_data = None
@@ -316,7 +316,7 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
 
     # Check if y_err is provided and load it
     if isinstance(y_err, str):
-        y_err_data = np.array(df[y_err])[Mask]
+        y_err_data = df[y_err].to_numpy()[Mask]
 
     else:
         y_err_data = None
@@ -608,7 +608,7 @@ def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], sp
     return output_Data, ax
 
 
-def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None, nBootstrap=100, verbose = True,
+def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_errs = None, bins=25, xrange=None, nBootstrap=100, verbose = True,
                          Output_mode='Covariance', kernel_type='gaussian', kernel_width=0.2,
                          percentile=[16., 84.], xlog=False, labels=None, color=None, fast_calc = False,
                          ax=None):
@@ -680,17 +680,22 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None
             x_data, y_data, z_data = x_data[Mask], y_data[Mask], z_data[Mask]
 
             # Check if y_err is provided and load it
-            if isinstance(y_err, str):
-                y_err_data = np.array(df[y_err])[Mask]
-
+            if isinstance(y_errs[i], str):
+                y_err_data = df[y_errs[i]].to_numpy()[Mask]
             else:
                 y_err_data = None
 
+            if isinstance(y_errs[j], str):
+                z_err_data = df[y_errs[j]].to_numpy()[Mask]
+            else:
+                z_err_data = None
+
             if Output_mode.lower() in ['covariance', 'cov']:
-                x, cov_corr = lm.covariance(x_data, y_data, z_data, y_err_data, xrange, bins, nBootstrap, fast_calc)
+                x, cov_corr = lm.covariance(x_data, y_data, z_data, y_err_data, z_err_data, xrange, bins, nBootstrap, fast_calc)
                 cov_corr    = cov_corr * Params['scatter_factor']**2
+
             elif Output_mode.lower() in ['correlation', 'corr']:
-                x, cov_corr = lm.correlation(x_data, y_data, z_data, y_err_data, xrange, bins, nBootstrap, fast_calc)
+                x, cov_corr = lm.correlation(x_data, y_data, z_data, y_err_data, z_err_data, xrange, bins, nBootstrap, fast_calc)
 
             if nBootstrap == 1: cov_corr = cov_corr[None, :]
 
@@ -756,7 +761,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_err = None, bins=25, xrange=None
     return output_Data, ax
 
 
-def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], y_err = None, Output_mode='Covariance',
+def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], y_errs = None, Output_mode='Covariance',
                                split_mode='Data', bins=25, xrange=None, nBootstrap=100, verbose = True, fast_calc = False,
                                kernel_type='gaussian', kernel_width=0.2, xlog=False, percentile=[16., 84.],
                                labels=None, color=None, ax=None):
@@ -841,11 +846,15 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
             x_data, y_data, z_data, split_data = x_data[Mask], y_data[Mask], z_data[Mask], split_data[Mask]
 
             # Check if y_err is provided and load it
-            if isinstance(y_err, str):
-                y_err_data = np.array(df[y_err])[Mask]
-
+            if isinstance(y_errs[i], str):
+                y_err_data = df[y_errs[i]].to_numpy()[Mask]
             else:
                 y_err_data = None
+
+            if isinstance(y_errs[j], str):
+                z_err_data = df[y_errs[j]].to_numpy()[Mask]
+            else:
+                z_err_data = None
 
             # Choose bin edges for binning data
             if (isinstance(split_bins, int)):
@@ -875,11 +884,17 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                 else:
                     y_err_data_in = y_err_data[split_Mask]
 
+                if z_err is None:
+                    z_err_data_in = None
+                else:
+                    z_err_data_in = z_err_data[split_Mask]
+
                 if Output_mode.lower() in ['covariance', 'cov']:
-                    x, cov_corr = lm.covariance(x_data[split_Mask], y_data[split_Mask], z_data[split_Mask], y_err_data_in, xrange, bins, nBootstrap, fast_calc)
+                    x, cov_corr = lm.covariance(x_data, y_data, z_data, y_err_data, z_err_data, xrange, bins, nBootstrap, fast_calc)
                     cov_corr    = cov_corr * Params['scatter_factor']**2
+
                 elif Output_mode.lower() in ['correlation', 'corr']:
-                    x, cov_corr = lm.correlation(x_data[split_Mask], y_data[split_Mask], z_data[split_Mask], y_err_data_in, xrange, bins, nBootstrap, fast_calc)
+                    x, cov_corr = lm.correlation(x_data, y_data, z_data, y_err_data, z_err_data, xrange, bins, nBootstrap, fast_calc)
 
                 if nBootstrap == 1: cov_corr = cov_corr[None, :]
 

@@ -807,7 +807,7 @@ class kllr_model():
 
         return xline, yline, intercept, slopes, scatter, skew, kurt
 
-    def correlation(self, X, y, z, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
+    def correlation(self, X, y, z, y_err = None, z_err = None, xrange = None, bins = 25, nBootstrap = 100,
                     fast_calc = False, verbose = False, kernel_type=None, kernel_width=None):
 
         """
@@ -869,6 +869,11 @@ class kllr_model():
                 elif isinstance(y_err, np.ndarray):
                     y_err_small = y_err[Mask]
 
+                if z_err is None:
+                    z_err_small = None
+                elif isinstance(z_err, np.ndarray):
+                    z_err_small = z_err[Mask]
+
                 if X_small.size == 0:
 
                     raise ValueError("Attempting regression using 0 objects at x = %0.2f. To correct this\n"%xline[i] + \
@@ -877,7 +882,7 @@ class kllr_model():
 
             else:
 
-                X_small, y_small, z_small, y_err_small = X, y, z, y_err
+                X_small, y_small, z_small, y_err_small, z_err_small = X, y, z, y_err, z_err
 
             # Generate weights at sample point
             w = calculate_weights(X_small[:, 0], kernel_type = kernel_type, mu=xline[i], width=kernel_width[i])
@@ -905,11 +910,16 @@ class kllr_model():
                 elif isinstance(y_err_small, np.ndarray):
                     y_err_small_in = y_err_small[rand_ind]
 
+                if z_err_small is None:
+                    z_err_small_in = None
+                elif isinstance(z_err_small, np.ndarray):
+                    z_err_small_in = z_err_small[rand_ind]
+
                 # Compute fit params using linear regressions
-                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weights= w_rand)[:2]
+                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weights = w_rand)[:2]
                 dy = y_small_rand - (intercept + np.dot(X_small_rand, slope))
 
-                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, y_err_small_in, weights= w_rand)[:2]
+                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, z_err_small_in, weights = w_rand)[:2]
                 dz = z_small_rand - (intercept + np.dot(X_small_rand, slope))
 
                 cov = np.cov(dy, dz, aweights = w_rand)
@@ -919,7 +929,7 @@ class kllr_model():
 
         return xline, correlation
 
-    def covariance(self, X, y, z, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
+    def covariance(self, X, y, z, y_err = None, z_err = None, xrange = None, bins = 25, nBootstrap = 100,
                    fast_calc = False, verbose = False, kernel_type=None, kernel_width=None):
 
         """
@@ -981,6 +991,11 @@ class kllr_model():
                 elif isinstance(y_err, np.ndarray):
                     y_err_small = y_err[Mask]
 
+                if z_err is None:
+                    z_err_small = None
+                elif isinstance(z_err, np.ndarray):
+                    z_err_small = z_err[Mask]
+
                 if X_small.size == 0:
 
                     raise ValueError("Attempting regression using 0 objects at x = %0.2f. To correct this\n"%xline[i] + \
@@ -989,10 +1004,10 @@ class kllr_model():
 
             else:
 
-                X_small, y_small, z_small, y_err_small = X, y, z, y_err
+                X_small, y_small, z_small, y_err_small, z_err_small = X, y, z, y_err, z_err
 
             # Generate weights at sample point
-            w = calculate_weights(X_small[:, 0], kernel_type=kernel_type, mu=xline[i], width=kernel_width[i])
+            w = calculate_weights(X_small[:, 0], kernel_type = kernel_type, mu=xline[i], width=kernel_width[i])
 
             for j in range(nBootstrap):
 
@@ -1017,11 +1032,16 @@ class kllr_model():
                 elif isinstance(y_err_small, np.ndarray):
                     y_err_small_in = y_err_small[rand_ind]
 
+                if z_err_small is None:
+                    z_err_small_in = None
+                elif isinstance(z_err_small, np.ndarray):
+                    z_err_small_in = z_err_small[rand_ind]
+
                 # Compute fit params using linear regressions
-                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weights= w_rand)[:2]
+                intercept, slope = self.linear_regression(X_small_rand, y_small_rand, y_err_small_in, weights = w_rand)[:2]
                 dy = y_small_rand - (intercept + np.dot(X_small_rand, slope))
 
-                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, y_err_small_in, weights= w_rand)[:2]
+                intercept, slope = self.linear_regression(X_small_rand, z_small_rand, z_err_small_in, weights = w_rand)[:2]
                 dz = z_small_rand - (intercept + np.dot(X_small_rand, slope))
 
                 cov = np.cov(dy, dz, aweights = w_rand)
