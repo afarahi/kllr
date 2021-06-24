@@ -383,12 +383,12 @@ def calculate_weights(x, kernel_type='gaussian', mu=0, width=0.2):
 
     # the gaussian kernel
     def gaussian_kernel(x, mu=0.0, width=1.0):
-        return np.exp(-(x - mu) ** 2 / 2. / width ** 2)
+        return 1/np.sqrt(2*np.pi*width**2)*np.exp(-(x - mu) ** 2 / 2. / width ** 2)
 
     # the tophat kernel
     def tophat_kernel(x, mu=0.0, width=1.0):
         w = np.zeros(len(x))
-        w[(x - mu < width / 2.0) * (x - mu > -width / 2.0)] = 1.0
+        w[np.abs(x - mu) < width/2] = 1.0
         return w
 
     if kernel_type == 'gaussian':
