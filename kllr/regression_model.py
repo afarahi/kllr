@@ -142,8 +142,8 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
         sig2 = np.average((np.array(y) - (np.dot(X, slopes) + intercept)) ** 2 - y_err**2, weights = weights)
         sig2 /= 1 - np.sum(weights**2)/np.sum(weights)**2 #Required factor for getting unbiased estimate
 
-    if (sig2 <= 0) & (y_err == 0):
-        
+    if (sig2 <= 0) & (y_err is 0):
+
         print("The uncertainty, y_err, is larger than the instrinsic scatter. " + \
               "The corrected variance, var_true = var_obs - y_err^2, is negative.")
 
