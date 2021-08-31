@@ -765,7 +765,7 @@ class kllr_model():
             for j in range(nBootstrap):
 
                 #First "bootstrap" is always using unsampled data
-                if j == 1:
+                if j == 0:
                     rand_ind = np.ones(y_small.size).astype(bool)
                 else:
                     rand_ind = np.random.randint(0, y_small.size, y_small.size)
@@ -890,7 +890,7 @@ class kllr_model():
             for j in range(nBootstrap):
 
                 #First "bootstrap" is always using unsampled data
-                if j == 1:
+                if j == 0:
                     rand_ind = np.ones(y_small.size).astype(bool)
                 else:
                     rand_ind = np.random.randint(0, y_small.size, y_small.size)
@@ -1012,7 +1012,7 @@ class kllr_model():
             for j in range(nBootstrap):
 
                 #First "bootstrap" is always using unsampled data
-                if j == 1:
+                if j == 0:
                     rand_ind = np.ones(y_small.size).astype(bool)
                 else:
                     rand_ind = np.random.randint(0, y_small.size, y_small.size)
