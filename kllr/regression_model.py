@@ -43,6 +43,7 @@ from scipy.interpolate import interp1d
 from tqdm import tqdm
 from sklearn import linear_model
 
+
 def scatter(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     """
     This function computes the weighted scatter about the mean relation.
@@ -120,7 +121,7 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
             raise ValueError("Input y_err contains either zeros or negative values.",
                              "It should contain only positive values.")
 
-    #Make sure slopes is an 1D array
+    # Make sure slopes is an 1D array
     slopes = np.atleast_1d(slopes)
 
     if len(slopes.shape) > 1:
@@ -151,6 +152,7 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
 
     else:
         return np.sqrt(sig2)
+
 
 def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     """
@@ -232,7 +234,6 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weights=None):
             raise ValueError("Input y_err contains either zeros or negative values. " + \
                              "It should contain only positive values.")
 
-
     elif y_err is not None:
 
         weights= weights/y_err
@@ -305,6 +306,7 @@ def skewness(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
 
     return skew
 
+
 def kurtosis(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     """
     This function computes the weighted kurtosis about the mean relation.
@@ -349,6 +351,7 @@ def kurtosis(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     kurt = m4/m2**2
 
     return kurt
+
 
 def calculate_weights(x, kernel_type='gaussian', mu=0, width=0.2):
     """
@@ -498,19 +501,19 @@ class kllr_model():
 
     Methods
     -------
-    linear_regression(x, y, weights = None)
+    linear_regression(x, y, y_err = None, weights = None)
         perform a linear regression give a set of weights
 
-    correlation(self, data_x, data_y, data_z, x, kernel_type = None, kernel_width = None)
+    correlation(self, data_x, data_y, data_z, x, y_err = None, z_err = None, fast_calc = False, kernel_type = None, kernel_width = None)
         compute the conditional correlation coefficient conditioned at point x
 
-    covariance(x, y, xrange = None, bins = 60, kernel_type = None, kernel_width = None)
+    covariance(x, y, xrange = None, bins = 60, y_err = None, z_err = None, fast_calc = False, kernel_type = None, kernel_width = None)
         compute the conditional correlation coefficient conditioned at point x
 
-    residuals(x, y, xrange = None, bins = 60, kernel_type = None, kernel_width = None)
-        compute residuls about the mean relation i.e., res = y - <y|X>
+    residuals(x, y, y_err = None, fast_calc = False, xrange = None, bins = 60,  kernel_type = None, kernel_width = None)
+        compute residuals about the mean relation i.e., res = y - <y|X>
 
-    fit(x, y, xrange = None, bins = 25, kernel_type = None, kernel_width = None)
+    fit(x, y, y_err = None, xrange = None, fast_calc = False, bins = 25, kernel_type = None, kernel_width = None)
         fit a kernel localized linear relation to (x, y) pairs, i.e. <y | x> = a(y) x + b(y)
 
     """
@@ -588,14 +591,14 @@ class kllr_model():
              is None if compute_kurtosis = False
         """
 
-        #if X is not 2D then raise error
+        # if X is not 2D then raise error
         if len(X.shape) > 2:
             raise ValueError("Incompatible dimension for X."
                              "X must be a numpy array with atmost two dimensions.")
 
         elif len(X.shape) == 1:
 
-            X = X[:, None] #convert 1D to 2D array
+            X = X[:, None] # convert 1D to 2D array
 
 
         if len(y.shape) != 1:
@@ -644,7 +647,6 @@ class kllr_model():
     def fit(self, X, y, y_err = None, xrange = None, bins = 25, nBootstrap = 100,
             fast_calc = False, verbose = False, compute_skewness = False, compute_kurtosis = False,
             kernel_type = None, kernel_width = None):
-
         """
         This function computes the local regression parameters at the points within xrange.
 
