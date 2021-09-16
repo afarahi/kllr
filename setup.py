@@ -31,9 +31,9 @@ with open(os.path.join(dir_path, 'readme.md')) as f:
 
 kwargs = {
     'name': 'kllr',
-    'version': '1.0.2',
+    'version': '2.0',
     'author': 'Arya Farahi, Dhayaa Anbajagane',
-    'author_email': 'aryaf@umich.edu',
+    'author_email': 'arya.farahi@austin.utexas.edu',
     'packages': ['KLLR'],
     'url': 'https://github.com/afarahi/kllr',
     'description': 'Kernel Localized Linear Regression.',

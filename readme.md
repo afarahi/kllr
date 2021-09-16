@@ -29,6 +29,10 @@ If you use KLLR or derivates based on it, please cite the following papers which
 
 [Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes](https://arxiv.org/abs/2001.02283)
 
+A list of other publications that employed `KLLR` in their data analysis.
+
+D. Anbajagane, A. Evrard, A. Farahi, [Baryonic Imprints on DM Halos: Population Statistics from Dwarf Galaxies to Galaxy Clusters](https://arxiv.org/abs/2109.02713), MNRAS, (2022)
+
 ## Dependencies
 
 `numpy`, `scipy`,  `matplotlib`, `pandas`, `sklearn`, `tqdm`
