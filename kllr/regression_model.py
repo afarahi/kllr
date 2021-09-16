@@ -93,8 +93,8 @@ def scatter(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
 
     """
 
-    #If X is provided as a 1D array then convert to
-    #2d array with shape (N, 1)
+    # If X is provided as a 1D array then convert to
+    # 2d array with shape (N, 1)
     if len(X.shape) == 1: X = X[:, None]
 
     if len(X.shape) > 2:
@@ -168,11 +168,6 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     y : numpy array
         Dependent variable data vector.
 
-    y_err : numpy array, optional
-        Uncertainty on dependent variable, y.
-        Must contain only non-zero positive values.
-        Default is None.
-
     slope : numpy array
         1D array of the slopes of the regression model.
         Each entry is the slope of a particular feature.
@@ -202,8 +197,8 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weights=None):
 
     """
 
-    #If X is provided as a 1D array then convert to
-    #2d array with shape (N, 1)
+    # If X is provided as a 1D array then convert to
+    # 2d array with shape (N, 1)
     if len(X.shape) == 1: X = X[:, None]
 
     if len(X.shape) > 2:
@@ -221,7 +216,7 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weights=None):
             "Incompatible dimension for X and Y. X and Y should have the same feature dimension,"
             ": X.shape[0] = %i while Y.shape[0] = %i." % (X.shape[0], y.shape[0]))
 
-    #Make sure slopes is an 1D array
+    # Make sure slopes is an 1D array
     slopes = np.atleast_1d(slopes)
 
     if len(slopes.shape) > 1:
@@ -262,6 +257,7 @@ def moments(m, X, y, slopes, intercept, y_err = None, dof=None, weights=None):
 
     else:
         return output
+
 
 def skewness(X, y, slopes, intercept, y_err = None, dof=None, weights=None):
     """
@@ -402,6 +398,7 @@ def calculate_weights(x, kernel_type='gaussian', mu=0, width=0.2):
 
     return w
 
+
 def setup_bins(xrange, bins, x):
     """
     Convenience function that generates sample points for regression
@@ -445,6 +442,7 @@ def setup_bins(xrange, bins, x):
 
         return xline
 
+
 def setup_kernel_width(kernel_width, default_width, bins_size):
     """
     Convenience function that sets up the kernel_width values
@@ -481,6 +479,7 @@ def setup_kernel_width(kernel_width, default_width, bins_size):
         else:
 
             return kernel_width
+
 
 class kllr_model():
     """
@@ -825,6 +824,19 @@ class kllr_model():
         z : numpy array
             Dependent variable data vector. Must be a one dimensional data vector.
 
+        fast_calc : boolean
+            When False, do nothing
+            When True , the method only uses data within 3 x kernel_width from the scale mu.
+             It speeds up the calculation by removing objects that have extremely small weight.
+
+        y_err, z_err : numpy array, optional
+            Uncertainty on dependent variable, y and z.
+            Must contain only non-zero positive values.
+            Default is None.
+
+        verbose : boolean
+            Controls the verbosity of the model's output.
+
         xrange : float
             Value of the conditional parameter. It computes the covariance at this point.
 
@@ -889,7 +901,7 @@ class kllr_model():
 
             for j in range(nBootstrap):
 
-                #First "bootstrap" is always using unsampled data
+                # First "bootstrap" is always using unsampled data
                 if j == 0:
                     rand_ind = np.ones(y_small.size).astype(bool)
                 else:
@@ -903,8 +915,8 @@ class kllr_model():
                 z_small_rand = z_small[rand_ind]
                 w_rand       = w[rand_ind]
 
-                #Edge case handling I:
-                #If y_err is a None, then we can't index it
+                # Edge case handling I:
+                # If y_err is a None, then we can't index it
                 if y_err_small is None:
                     y_err_small_in = None
                 elif isinstance(y_err_small, np.ndarray):
@@ -947,6 +959,11 @@ class kllr_model():
         z : numpy array
             Dependent variable data vector. Must be a one dimensional data vector.
 
+        y_err, z_err : numpy array, optional
+            Uncertainty on dependent variable, y and z.
+            Must contain only non-zero positive values.
+            Default is None.
+
         xrange : float
             Value of the conditional parameter. It computes the covariance at this point.
 
@@ -958,6 +975,12 @@ class kllr_model():
             If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
             If kernel_type = 'tophat' then 'width' is the width of the tophat kernel.
             If None it uses the pre-specified `kernel_width`
+
+        fast_calc : boolean
+            When False, do nothing
+            When True , the method only uses data within 3 x kernel_width from the scale mu.
+             It speeds up the calculation by removing objects that have extremely small weight.
+
 
         Returns
         -------
@@ -1064,6 +1087,11 @@ class kllr_model():
         y : numpy array
             Dependent variable data vector. This version only support a one dimensional data vector.
 
+        y_err : numpy array, optional
+            Uncertainty on dependent variable, y.
+            Must contain only non-zero positive values.
+            Default is None.
+
         xrange : list, optional
             The range of regression. The first element is the min and the second element is the max.
             If None it set it to min and max of x, i.e., `xrange = [min(x), max(x)]`
@@ -1079,6 +1107,11 @@ class kllr_model():
             If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernel.
             If kernel_type = 'tophat' then 'width' is the width of the tophat kernel.
             If None it uses the pre-specified `kernel_width`
+
+        fast_calc : boolean
+            When False, do nothing
+            When True , the method only uses data within 3 x kernel_width from the scale mu.
+             It speeds up the calculation by removing objects that have extremely small weight.
 
         Returns
         -------

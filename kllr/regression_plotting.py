@@ -6,7 +6,7 @@ from tqdm import tqdm
 from .regression_model import kllr_model, setup_bins
 
 
-#Plotting parameters
+# Plotting parameters
 import matplotlib as mpl
 
 mpl.rcParams['xtick.direction'], mpl.rcParams['ytick.direction'] = 'in', 'in'
@@ -89,6 +89,12 @@ funcs : dictionary
 
 verbose : boolean
     Controls the verbosity of the model's output.
+
+fast_calc : boolean
+    When False, do nothing
+    When True , the method only uses data within 3 x kernel_width from the scale mu.
+    It speeds up the calculation by removing objects that have exteremly small weight.
+
 
 Returns
 ----------
@@ -190,6 +196,59 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
 
     This function visualizes the estimated local fitted parameters (normalization, slope, and scatter).
 
+    Parameters
+    -------------
+
+    df : pandas dataframe
+        DataFrame containing all properties
+
+    xlabel, ylabel(s) : str
+        labels of the data vectors of interest in the dataframe.
+        In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
+    bins : int
+        Sets the number of points within x_range that the parameters are sampled at.
+        When plotting a PDF it sets the number of bins the PDF is split into.
+
+    xrange : list, tuple, np.array
+        A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
+        By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
+
+    nBootstrap : int
+        Sets how many bootstrap realizations are made when determining statistical error in parameters.
+
+    percentile : list, tuple, np.array
+        List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
+        Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
+
+    verbose : boolean
+        Controls the verbosity of the model's output.
+
+    kernel_type : string, optional
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
+
+    kernel_width : float, optional
+        If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernels.
+        If kernel_type = 'tophat' then 'width' is the width of the tophat kernels.
+
+    fast_calc : boolean
+        When False, do nothing
+        When True , the method only uses data within 3 x kernel_width from the scale mu.
+          It speeds up the calculation by removing objects that have exteremly small weight.
+
+    show_data : boolean
+        Used in Plot_Fit function to show the datapoints used to make the LLR fit.
+        Is set to show_data = False, by default
+
+    labels : list of str
+        Allows for user-defined labels for x-axis, y-axis, legend labels.
+
+
     Returns
     -------
         output_Data: summary of estimated parameters
@@ -230,7 +289,7 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
     else:
         y_err_data = None
 
-    #Perform fit
+    # Perform fit
     Fit_Output = lm.fit(x_data, y_data, y_err_data, xrange, bins, nBootstrap, fast_calc, verbose)
 
     x, y = Fit_Output[0], Fit_Output[1]
@@ -300,6 +359,77 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
 
     This function stratifies data on split variable and then visualizes
      estimated local fitted parameters (normalization, slope, and scatter).
+
+    Parameters
+    -------------
+
+    df : pandas dataframe
+        DataFrame containing all properties
+
+    xlabel, ylabel(s) : str
+        labels of the data vectors of interest in the dataframe.
+        In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
+    show_data : boolean
+        Used in Plot_Fit function to show the datapoints used to make the LLR fit.
+        Is set to show_data = False, by default
+
+    bins : int
+        Sets the number of points within x_range that the parameters are sampled at.
+        When plotting a PDF it sets the number of bins the PDF is split into.
+
+    xrange : list, tuple, np.array
+        A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
+        By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
+
+    nBootstrap : int
+        Sets how many bootstrap realizations are made when determining statistical error in parameters.
+
+    percentile : list, tuple, np.array
+        List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
+        Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
+
+    split_label : str
+        Label of the data vector used to split the data, or condition the data, on a secondary variable.
+
+    split_bins : int, list, tuple, numpy array
+        Can be either number of bins (int), or array of bin_edges.
+
+        If an int is provided the modules will determine the bin edges themselves using the data vector.
+        By default, edges are set so there are equal number of data points in each bin.
+        Note that the bin edges in this case will be determined using all data passed into the function. However,
+        the plotting and computations will be done only using data with x-values within the bounds set by the xrange parameter.
+
+        If a list is provided then the list elements serve as the bin edges
+
+    split_mode : str
+        Sets how the data is split/conditioned based on the split variable
+        If 'Data', then all halos are binned based on the variable df[split_label]
+        If 'Residuals', then we fit split_label vs. xlabel, then split the data into bins based on the residual values
+
+    labels : list of str
+        Allows for user-defined labels for x-axis, y-axis, legend labels.
+
+    verbose : boolean
+        Controls the verbosity of the model's output.
+
+    kernel_type : string, optional
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
+
+    kernel_width : float, optional
+        If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernels.
+        If kernel_type = 'tophat' then 'width' is the width of the tophat kernels.
+
+    fast_calc : boolean
+        When False, do nothing
+        When True , the method only uses data within 3 x kernel_width from the scale mu.
+          It speeds up the calculation by removing objects that have exteremly small weight.
+
 
     Returns
     -------
@@ -445,6 +575,54 @@ def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, 
     '''
     This function visualizes the third and forth moment of residuals about the best fit curve.
 
+    Parameters
+    -------------
+    df : pandas dataframe
+        DataFrame containing all properties
+
+    xlabel, ylabel(s) : str
+        labels of the data vectors of interest in the dataframe.
+        In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
+    bins : int
+        Sets the number of points within x_range that the parameters are sampled at.
+        When plotting a PDF it sets the number of bins the PDF is split into.
+
+    xrange : list, tuple, np.array
+        A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
+        By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
+
+    nBootstrap : int
+        Sets how many bootstrap realizations are made when determining statistical error in parameters.
+
+    percentile : list, tuple, np.array
+        List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
+        Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
+
+    labels : list of str
+        Allows for user-defined labels for x-axis, y-axis, legend labels.
+
+    verbose : boolean
+        Controls the verbosity of the model's output.
+
+    kernel_type : string, optional
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
+
+    kernel_width : float, optional
+        If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernels.
+        If kernel_type = 'tophat' then 'width' is the width of the tophat kernels.
+
+    fast_calc : boolean
+        When False, do nothing
+        When True , the method only uses data within 3 x kernel_width from the scale mu.
+          It speeds up the calculation by removing objects that have exteremly small weight.
+
+
     Returns
     -------
         output_Data: summary of estimated parameters
@@ -527,6 +705,73 @@ def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], sp
     '''
     This function stratifies data on split variable and then visualizes
         the third and forth moment of residuals about the best fit curve.
+
+    Parameters
+    -------------
+    df : pandas dataframe
+        DataFrame containing all properties
+
+    xlabel, ylabel(s) : str
+        labels of the data vectors of interest in the dataframe.
+        In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
+    bins : int
+        Sets the number of points within x_range that the parameters are sampled at.
+        When plotting a PDF it sets the number of bins the PDF is split into.
+
+    xrange : list, tuple, np.array
+        A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
+        By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
+
+    nBootstrap : int
+        Sets how many bootstrap realizations are made when determining statistical error in parameters.
+
+    percentile : list, tuple, np.array
+        List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
+        Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
+
+    split_label : str
+        Label of the data vector used to split the data, or condition the data, on a secondary variable.
+
+    split_bins : int, list, tuple, numpy array
+        Can be either number of bins (int), or array of bin_edges.
+
+        If an int is provided the modules will determine the bin edges themselves using the data vector.
+        By default, edges are set so there are equal number of data points in each bin.
+        Note that the bin edges in this case will be determined using all data passed into the function. However,
+        the plotting and computations will be done only using data with x-values within the bounds set by the xrange parameter.
+
+        If a list is provided then the list elements serve as the bin edges
+
+    split_mode : str
+
+        Sets how the data is split/conditioned based on the split variable
+        If 'Data', then all halos are binned based on the variable df[split_label]
+        If 'Residuals', then we fit split_label vs. xlabel, then split the data into bins based on the residual values
+
+    labels : list of str
+        Allows for user-defined labels for x-axis, y-axis, legend labels.
+
+    verbose : boolean
+        Controls the verbosity of the model's output.
+
+    kernel_type : string, optional
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
+
+    kernel_width : float, optional
+        If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernels.
+        If kernel_type = 'tophat' then 'width' is the width of the tophat kernels.
+
+    fast_calc : boolean
+        When False, do nothing
+        When True , the method only uses data within 3 x kernel_width from the scale mu.
+          It speeds up the calculation by removing objects that have exteremly small weight.
+
 
     Returns
     -------
@@ -647,6 +892,54 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_errs = None, bins=25, xrange=Non
     '''
     This function visualizes estimated local correlation coefficient or
     the covariance between a set of variables.
+
+    Parameters
+    -------------
+    df : pandas dataframe
+        DataFrame containing all properties
+
+    xlabel, ylabel(s) : str
+        labels of the data vectors of interest in the dataframe.
+        In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
+    bins : int
+        Sets the number of points within x_range that the parameters are sampled at.
+        When plotting a PDF it sets the number of bins the PDF is split into.
+
+    xrange : list, tuple, np.array
+        A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
+        By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
+
+    nBootstrap : int
+        Sets how many bootstrap realizations are made when determining statistical error in parameters.
+
+    percentile : list, tuple, np.array
+        List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
+        Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
+
+    labels : list of str
+        Allows for user-defined labels for x-axis, y-axis, legend labels.
+
+    verbose : boolean
+        Controls the verbosity of the model's output.
+
+    kernel_type : string, optional
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
+
+    kernel_width : float, optional
+        If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernels.
+        If kernel_type = 'tophat' then 'width' is the width of the tophat kernels.
+
+    fast_calc : boolean
+        When False, do nothing
+        When True , the method only uses data within 3 x kernel_width from the scale mu.
+          It speeds up the calculation by removing objects that have exteremly small weight.
+
 
     Returns
     -------
@@ -812,6 +1105,73 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
     '''
     This function stratifies data on split variable and then visualizes
      estimated local correlation coefficient or the covariance between a set of variables.
+
+    Parameters
+    -------------
+    df : pandas dataframe
+        DataFrame containing all properties
+
+    xlabel, ylabel(s) : str
+        labels of the data vectors of interest in the dataframe.
+        In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
+    bins : int
+        Sets the number of points within x_range that the parameters are sampled at.
+        When plotting a PDF it sets the number of bins the PDF is split into.
+
+    xrange : list, tuple, np.array
+        A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
+        By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
+
+    nBootstrap : int
+        Sets how many bootstrap realizations are made when determining statistical error in parameters.
+
+    percentile : list, tuple, np.array
+        List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
+        Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
+
+    split_label : str
+        Label of the data vector used to split the data, or condition the data, on a secondary variable.
+
+    split_bins : int, list, tuple, numpy array
+        Can be either number of bins (int), or array of bin_edges.
+
+        If an int is provided the modules will determine the bin edges themselves using the data vector.
+        By default, edges are set so there are equal number of data points in each bin.
+        Note that the bin edges in this case will be determined using all data passed into the function. However,
+        the plotting and computations will be done only using data with x-values within the bounds set by the xrange parameter.
+
+        If a list is provided then the list elements serve as the bin edges
+
+    split_mode : str
+
+        Sets how the data is split/conditioned based on the split variable
+        If 'Data', then all halos are binned based on the variable df[split_label]
+        If 'Residuals', then we fit split_label vs. xlabel, then split the data into bins based on the residual values
+
+    labels : list of str
+        Allows for user-defined labels for x-axis, y-axis, legend labels.
+
+    verbose : boolean
+        Controls the verbosity of the model's output.
+
+    kernel_type : string, optional
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
+
+    kernel_width : float, optional
+        If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernels.
+        If kernel_type = 'tophat' then 'width' is the width of the tophat kernels.
+
+    fast_calc : boolean
+        When False, do nothing
+        When True , the method only uses data within 3 x kernel_width from the scale mu.
+          It speeds up the calculation by removing objects that have exteremly small weight.
+
 
     Returns
     -------
@@ -1031,10 +1391,52 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
 
 
 def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100,
-                  verbose = True, return_moments = False, kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.], fast_calc = False,
+                  return_moments = False, kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.], fast_calc = False,
                   labels=None, color=None, ax=None):
     '''
     This function visualizes the histogram of residuals about the best fit curve.
+
+    Parameters
+    -------------
+    df : pandas dataframe
+        DataFrame containing all properties
+
+    xlabel, ylabel(s) : str
+        labels of the data vectors of interest in the dataframe.
+        In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
+
+    y_err : numpy array, optional
+        Uncertainty on dependent variable, y.
+        Must contain only non-zero positive values.
+        Default is None.
+
+    bins : int
+        Sets the number of points within x_range that the parameters are sampled at.
+        When plotting a PDF it sets the number of bins the PDF is split into.
+
+    xrange : list, tuple, np.array
+        A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
+        By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
+
+    percentile : list, tuple, np.array
+        List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
+        Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
+
+    labels : list of str
+        Allows for user-defined labels for x-axis, y-axis, legend labels.
+
+    kernel_type : string, optional
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
+
+    kernel_width : float, optional
+        If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernels.
+        If kernel_type = 'tophat' then 'width' is the width of the tophat kernels.
+
+    fast_calc : boolean
+        When False, do nothing
+        When True , the method only uses data within 3 x kernel_width from the scale mu.
+          It speeds up the calculation by removing objects that have exteremly small weight.
+
 
     Returns
     -------
@@ -1122,12 +1524,71 @@ def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbin
 
 
 def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mode='Data', y_err = None, bins=25, xrange=None,
-                        PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100, verbose = True, return_moments = False,
+                        PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100, return_moments = False,
                         kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
                         percentile=[16., 84.], labels=None, color=None, cmap = None, ax=None):
     '''
     This function stratifies data on split variable and then visualizes
      the histogram of residuals about the best fit curve.
+
+    Parameters
+    -------------
+    df : pandas dataframe
+        DataFrame containing all properties
+
+    xlabel, ylabel(s) : str
+        labels of the data vectors of interest in the dataframe.
+        In case of covariance/correlation matrix functions, we pass a list of labels into the "ylabels" parameter.
+
+    bins : int
+        Sets the number of points within x_range that the parameters are sampled at.
+        When plotting a PDF it sets the number of bins the PDF is split into.
+
+    xrange : list, tuple, np.array
+        A 2-element list, tuple, or numpy array that sets the range of x-values for which we compute and plot parameters.
+        By default, xrange = None, and the codes will choose np.min(x_data) and np.max(x_data) as lower and upper bounds.
+
+    nBootstrap : int
+        Sets how many bootstrap realizations are made when determining statistical error in parameters.
+
+    percentile : list, tuple, np.array
+        List, tuple, or numpy array whose values set the bounds of parameter distribution to be plotted when plotting uncertainties.
+        Assuming gaussianity for the distributions, a 1sigma bound can be gained using [16., 84.], which is also the default value.
+
+    split_label : str
+        Label of the data vector used to split the data, or condition the data, on a secondary variable.
+
+    split_bins : int, list, tuple, numpy array
+        Can be either number of bins (int), or array of bin_edges.
+
+        If an int is provided the modules will determine the bin edges themselves using the data vector.
+        By default, edges are set so there are equal number of data points in each bin.
+        Note that the bin edges in this case will be determined using all data passed into the function. However,
+        the plotting and computations will be done only using data with x-values within the bounds set by the xrange parameter.
+
+        If a list is provided then the list elements serve as the bin edges
+
+    split_mode : str
+
+        Sets how the data is split/conditioned based on the split variable
+        If 'Data', then all halos are binned based on the variable df[split_label]
+        If 'Residuals', then we fit split_label vs. xlabel, then split the data into bins based on the residual values
+
+    labels : list of str
+        Allows for user-defined labels for x-axis, y-axis, legend labels.
+
+    kernel_type : string, optional
+        The kernel type, ['gaussian', 'tophat'] else it assumes tophat kernel. The default is Gaussian
+
+    kernel_width : float, optional
+        If kernel_type = 'gaussian' then 'width' is the width of the gaussian kernels.
+        If kernel_type = 'tophat' then 'width' is the width of the tophat kernels.
+
+    fast_calc : boolean
+        When False, do nothing
+        When True , the method only uses data within 3 x kernel_width from the scale mu.
+          It speeds up the calculation by removing objects that have exteremly small weight.
+
 
     Returns
     -------
@@ -1189,7 +1650,7 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
 
     if nBootstrap == 1: dy = dy[None, :]
 
-    #Setup xrange if it is empty
+    # Setup xrange if it is empty
     if xrange is None:
         xrange = [np.min(x_data), np.max(x_data)]
 
