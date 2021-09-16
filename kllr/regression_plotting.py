@@ -186,10 +186,19 @@ def get_params():
 def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBootstrap=100,
                      verbose = True, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
                      show_data=False, xlog=False, ylog=False, color=None, labels=None, ax=None):
+    '''
+
+    This function visualizes the estimated local fitted parameters (normalization, slope, and scatter).
+
+    Returns
+    -------
+        output_Data: summary of estimated parameters
+        ax: matplot object
+    '''
 
     lm = kllr_model(kernel_type, kernel_width)
 
-    #Generate figure if none provided
+    # Generate figure if none provided
     if ax is None:
         fig, ax = plt.subplots(3, 1, figsize=(12, 19), sharex = True,
                                gridspec_kw = {'height_ratios':[1.75, 1, 1]})
@@ -267,7 +276,6 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
     ax[2].set_ylabel(r"$\sigma\,$(%s)" % labels[1], size=Params['ylabel_fontsize'])
     ax[2].set_xlabel(labels[0], size=Params['xlabel_fontsize'])
 
-
     output_Data['x']  = x
 
     output_Data['y']  = np.percentile(y, 50, 0)
@@ -288,11 +296,21 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
 def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mode = 'Data', y_err=None, bins=25, xrange=None,
                            nBootstrap=100, verbose = True, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
                            show_data=False, xlog=False, ylog=False, color=None, labels=None, cmap = None, ax=None):
+    '''
+
+    This function stratifies data on split variable and then visualizes
+     estimated local fitted parameters (normalization, slope, and scatter).
+
+    Returns
+    -------
+        output_Data: summary of estimated parameters
+        ax: matplot object
+    '''
 
     lm    = kllr_model(kernel_type, kernel_width)
     color = setup_color(color, split_bins, cmap)
 
-    #Generate figure if none provided
+    # Generate figure if none provided
     if ax is None:
         fig, ax = plt.subplots(3, 1, figsize=(12, 19), sharex = True,
                                gridspec_kw = {'height_ratios':[1.75, 1, 1]})
@@ -334,7 +352,6 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
     elif isinstance(split_bins, (np.ndarray, list, tuple)) & (split_mode == 'Residuals'):
         split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
 
-
     # Define dictionary that will contain values that are being plotted
     # First define it to be a dict of dicts whose first level keys are split_bin number
     output_Data = {'Bin' + str(i): {} for i in range(len(split_bins) - 1)}
@@ -347,7 +364,7 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
         elif split_mode == 'Residuals':
             split_Mask = (split_res < split_bins[i + 1]) & (split_res > split_bins[i])
 
-        #Edge case for y_err
+        # Edge case for y_err
         if y_err is None:
             y_err_data_in = None
         else:
@@ -369,7 +386,6 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
             label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])
         elif split_mode == 'Residuals':
             label = r'$%0.2f < {\rm res}($%s$) < %0.2f$' % (split_bins[i], labels[2], split_bins[i + 1])
-
 
         if xlog: x = 10 ** x
         if ylog: y = 10 ** y
@@ -414,7 +430,6 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
         output_Data['Bin' + str(i)]['scatter-'] = np.percentile(scatter, percentile[0], 0)
         output_Data['Bin' + str(i)]['scatter+'] = np.percentile(scatter, percentile[1], 0)
 
-
     ax[0].set_ylabel(labels[1], size=Params['ylabel_fontsize'])
     ax[1].set_ylabel(r"$\beta\,$(%s)" % labels[1],  size=Params['ylabel_fontsize'])
     ax[2].set_ylabel(r"$\sigma\,$(%s)" % labels[1], size=Params['ylabel_fontsize'])
@@ -427,6 +442,14 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
 def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, nBootstrap=100, verbose = True,
                         kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.], fast_calc = False,
                         xlog=False, labels=None, color=None, ax=None):
+    '''
+    This function visualizes the third and forth moment of residuals about the best fit curve.
+
+    Returns
+    -------
+        output_Data: summary of estimated parameters
+        ax: matplot object
+    '''
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -501,6 +524,15 @@ def Plot_Higher_Moments(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, 
 def Plot_Higher_Moments_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mode='Data', y_err = None, bins=25,
                               xrange=None, nBootstrap=100, verbose = True, kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
                               xlog=False, percentile=[16., 84.], color=None, labels=None, cmap = None, ax=None):
+    '''
+    This function stratifies data on split variable and then visualizes
+        the third and forth moment of residuals about the best fit curve.
+
+    Returns
+    -------
+        output_Data: summary of estimated parameters
+        ax: matplot object
+    '''
 
     check_attributes(split_bins=split_bins, split_mode=split_mode)
 
@@ -612,6 +644,15 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_errs = None, bins=25, xrange=Non
                          Output_mode='Covariance', kernel_type='gaussian', kernel_width=0.2,
                          percentile=[16., 84.], xlog=False, labels=None, color=None, fast_calc = False,
                          ax=None):
+    '''
+    This function visualizes estimated local correlation coefficient or
+    the covariance between a set of variables.
+
+    Returns
+    -------
+        output_Data: summary of estimated parameters
+        ax: matplot object
+    '''
 
     check_attributes(Output_mode=Output_mode)
 
@@ -735,7 +776,7 @@ def Plot_Cov_Corr_Matrix(df, xlabel, ylabels, y_errs = None, bins=25, xrange=Non
 
             if col == row:
 
-                #Remove any text that exists already
+                # Remove any text that exists already
                 for text in ax_tmp.texts:
                     text.set_visible(False)
 
@@ -768,13 +809,22 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                                split_mode='Data', bins=25, xrange=None, nBootstrap=100, verbose = True, fast_calc = False,
                                kernel_type='gaussian', kernel_width=0.2, xlog=False, percentile=[16., 84.],
                                labels=None, color=None, ax=None):
+    '''
+    This function stratifies data on split variable and then visualizes
+     estimated local correlation coefficient or the covariance between a set of variables.
+
+    Returns
+    -------
+        output_Data: summary of estimated parameters
+        ax: matplot object
+    '''
 
     check_attributes(split_bins=split_bins, Output_mode=Output_mode, split_mode=split_mode)
 
     lm    = kllr_model(kernel_type, kernel_width)
     color = setup_color(color, split_bins, cmap=None)
 
-    #Dictionary to store values
+    # Dictionary to store values
     output_Data = {}
 
     # size of matrix
@@ -885,7 +935,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                 elif split_mode == 'Residuals':
                     split_Mask = (split_res <= split_bins[k + 1]) & (split_res > split_bins[k])
 
-                #Edge case for y_err
+                # Edge case for y_err
                 if y_err_data is None:
                     y_err_data_in = None
                 else:
@@ -983,6 +1033,14 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
 def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100,
                   verbose = True, return_moments = False, kernel_type='gaussian', kernel_width=0.2, percentile=[16., 84.], fast_calc = False,
                   labels=None, color=None, ax=None):
+    '''
+    This function visualizes the histogram of residuals about the best fit curve.
+
+    Returns
+    -------
+        output_Data: summary of estimated parameters
+        ax: matplot object
+    '''
 
     lm = kllr_model(kernel_type, kernel_width)
 
@@ -1009,7 +1067,6 @@ def Plot_Residual(df, xlabel, ylabel, y_err = None, bins=25, xrange=None, PDFbin
 
     else:
         y_err_data = None
-
 
     dy = lm.residuals(x_data, y_data, y_err, xrange, bins, nBootstrap, fast_calc)
 
@@ -1068,6 +1125,15 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
                         PDFbins = 15, PDFrange=(-4, 4), nBootstrap=100, verbose = True, return_moments = False,
                         kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
                         percentile=[16., 84.], labels=None, color=None, cmap = None, ax=None):
+    '''
+    This function stratifies data on split variable and then visualizes
+     the histogram of residuals about the best fit curve.
+
+    Returns
+    -------
+        output_Data: summary of estimated parameters
+        ax: matplot object
+    '''
 
     check_attributes(split_bins=split_bins, split_mode=split_mode)
 
@@ -1133,8 +1199,8 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
     elif xrange[1] is None:
         xrange[1] = np.max(x_data)
 
-    #Generate Mask so only objects within xrange are used in PDF
-    #Need this to make sure dy and split_data are the same length
+    # Generate Mask so only objects within xrange are used in PDF
+    # Need this to make sure dy and split_data are the same length
     xrange_Mask = (x_data <= xrange[1]) & (x_data >= xrange[0])
 
     # Separately plot the PDF of data in each bin
@@ -1201,6 +1267,9 @@ def Plot_Residual_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mo
 
 
 def check_attributes(split_bins=10, Output_mode='corr', split_mode='Data'):
+    """
+    check if the attributes are in correct format.
+    """
 
     if not isinstance(split_bins, int) and not isinstance(split_bins, (np.ndarray, list, tuple)):
         raise TypeError("split_bins must be an integer number or a list of float numbers, "
