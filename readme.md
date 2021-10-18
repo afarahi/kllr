@@ -66,7 +66,7 @@ An example for using KLLR looks like this:
 Illustration the `KLLR` fit with varying kernel size. 
 
 
-<img src="./animation.gif" width="400" height="40" /> <img src="./animation_2.gif" width="400" height="40" /> <img src="./animation_3.gif" width="400" height="40" />
+<img src="./animation.gif" width="400" /> <img src="./animation_2.gif" width="400" /> <img src="./animation_3.gif" width="400" />
 
 
 
