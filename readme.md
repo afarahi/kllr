@@ -61,4 +61,12 @@ An example for using KLLR looks like this:
         xrange, yrange_mean, intercept, slope, scatter = lm.fit(x, y, nbins=11)                                   
                                                                           
     
+## Illustration 
+
+Illustration the `KLLR` fit with varying kernel size. 
+
+![kernel-example](./animation.gif)
+
+
+
 
