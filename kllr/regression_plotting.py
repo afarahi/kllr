@@ -314,7 +314,11 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
     if show_data:
 
         # Show raw data only with xrange that the fit was computed for
-        Mask = (x_data >= np.min(x)) & (x_data <= np.max(x))
+
+        if xlog:
+            Mask = (x_data >= np.min(np.log10(x))) & (x_data <= np.max(np.log10(x)))
+        else:
+            Mask = (x_data >= np.min(x)) & (x_data <= np.max(x))
 
         x_data_show, y_data_show = x_data[Mask], y_data[Mask]
 
