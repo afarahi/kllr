@@ -12,8 +12,8 @@ import os
 
 # Number of samples to be generated
 N = 10000
-saveplot = False
-showplot = True
+saveplot = True
+showplot = False
 
 if not os.path.exists('./examples') and saveplot:
     os.makedirs('./examples')
@@ -65,23 +65,15 @@ df = pd.DataFrame(S.T, columns = ['x', 'y1', 'y2', 'y3', 'y4'])
 lm = kllr_model(kernel_type = 'gaussian', kernel_width = 0.2)
 
 # Compute regression parameters
-x, y_exp, intercept_exp, slope_exp, scatter_exp = lm.fit(df['x'], df['y1'], xrange=[2, 8], nbins=11)
+x, y_exp, intercept_exp, slope_exp, scatter_exp, _, _ = lm.fit(df['x'], df['y1'], xrange=[2, 8], bins=11)
 
 # Generate and save fiducial analyses plots
-data, ax = Plot_Fit(df, 'x', 'y1', show_data=True, kernel_width = 0.4)
-data, ax = Plot_Fit(df, 'x', 'y2', show_data=True, kernel_width = 0.4, ax = ax)
+data, ax = Plot_Fit_Summary(df, 'x', 'y1', show_data=True, kernel_width = 0.4)
+data, ax = Plot_Fit_Summary(df, 'x', 'y2', show_data=True, kernel_width = 0.4, ax = ax)
 if saveplot: plt.savefig("./examples/Fit.pdf", bbox_inches='tight')
 
-data, ax = Plot_Fit_Split(df, 'x', 'y1', 'y3', split_mode = 'Residuals', split_bins=3, kernel_width = 0.4)
+data, ax = Plot_Fit_Summary_Split(df, 'x', 'y1', 'y3', split_mode = 'Residuals', split_bins=3, kernel_width = 0.4)
 if saveplot: plt.savefig("./examples/Fit_split.pdf", bbox_inches='tight')
-
-data, ax = Plot_Fit_Params(df, 'x', 'y1', xlog=False, kernel_width = 0.4)
-data, ax = Plot_Fit_Params(df, 'x', 'y2', xlog=False, kernel_width = 0.4, ax=ax)
-data, ax = Plot_Fit_Params(df, 'x', 'y3', xlog=False, kernel_width = 0.4, ax=ax)
-if saveplot: plt.savefig("./examples/Fit_Params.pdf", bbox_inches='tight')
-
-data, ax = Plot_Fit_Params_Split(df, 'x', 'y1', 'y3', split_bins = 2, split_mode = 'Residuals', kernel_width = 0.4)
-if saveplot: plt.savefig("./examples/Fit_Params_Split.pdf", bbox_inches='tight')
 
 ax = Plot_Cov_Corr_Matrix(df, 'x', ['y1', 'y2', 'y3'], Output_mode = 'corr', kernel_width = 0.4)
 if saveplot: plt.savefig("./examples/Corr_Matrix.pdf", bbox_inches='tight')
