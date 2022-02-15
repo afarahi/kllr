@@ -7,7 +7,6 @@
 </p>
 
 # Introduction
-
  
 Linear regression of the simple least-squares variety has been a canonical method used to characterize
  the relation between two variables, but its utility is limited by the fact that it reduces full 
@@ -51,6 +50,8 @@ A. Nachmann, W. K. Black, [Intra-cluster Summed Galaxy Colors](https://arxiv.org
 
 ## Acknowledgment
 
+A.F. is supported by the University of Texas at Austin.
+D.A. is supported by the National Science Foundation Graduate Research Fellowship under Grant No. DGE 1746045.
 
 ## Quickstart
 
