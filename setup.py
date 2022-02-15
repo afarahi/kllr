@@ -47,7 +47,8 @@ kwargs = {
     'test_suite': 'tests',
     'setup_requires': ['pytest-runner'],
     'tests_require': ['pytest'],
-    'classifiers': classifiers
+    'classifiers': classifiers,
+    'package_dir': {'':'src'}
 }
 
 try:
