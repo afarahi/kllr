@@ -16,8 +16,11 @@ except ImportError:
     HAVE_NUMPY = False
 
 classifiers = [
-    'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: MIT License',
     'Topic :: Scientific/Engineering',
@@ -45,16 +48,16 @@ kwargs = {
     'install_requires': ['numpy', 'scipy', 'matplotlib', 'pandas', 'sklearn', 'tqdm'],
     'packages': find_packages(),
     'test_suite': 'tests',
+    'python_modules': 'kllr',
     'setup_requires': ['pytest-runner'],
     'tests_require': ['pytest'],
     'classifiers': classifiers,
-    'package_dir': {'':'src'}
+    'package_dir': {'':'.'}
 }
 
 try:
     setup(**kwargs)
 except SystemExit:
-    del kwargs['ext_modules']
     reason = 'numpy missing, ' if not HAVE_NUMPY else ''
     warnings.warn(reason+'compilation failed. Installing pure python package')
     setup(**kwargs)
