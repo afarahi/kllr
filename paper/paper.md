@@ -84,6 +84,3 @@ and plotting modules use `Pandas` [@Pandas] data structure to perform KLLR
 and visualize through `Matplotlib` [@Matplotlib].
 
 
-# Acknowledgements
-
-Arya Farahi is supported by a Michigan Institute for Data Science Fellowship.
