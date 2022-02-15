@@ -53,6 +53,12 @@ A. Nachmann, W. K. Black, [Intra-cluster Summed Galaxy Colors](https://arxiv.org
 A.F. is supported by the University of Texas at Austin.
 D.A. is supported by the National Science Foundation Graduate Research Fellowship under Grant No. DGE 1746045.
 
+## Installation
+
+Run the following to install:
+
+    pip install kllr
+
 ## Quickstart
 
 To start using KLLR, simply use `from KLLR import kllr_model` to
