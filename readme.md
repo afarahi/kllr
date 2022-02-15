@@ -25,13 +25,18 @@ tools so practitioners can seamlessly generate visualization of the model parame
 
 If you use KLLR or derivates based on it, please cite the following papers which introduced the tool:
 
-[Localized massive halo properties in BAHAMAS and MACSIS simulations: scalings, lognormality, and covariance](https://academic.oup.com/mnras/article-abstract/478/2/2618/4993329)
+[Localized massive halo properties in BAHAMAS and MACSIS simulations: scalings, lognormality, and covariance](https://academic.oup.com/mnras/article-abstract/478/2/2618/4993329).
 
-[Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes](https://arxiv.org/abs/2001.02283)
+[Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes](https://arxiv.org/abs/2001.02283).
 
 A list of other publications that employed `KLLR` in their data analysis.
 
-D. Anbajagane, A. Evrard, A. Farahi, [Baryonic Imprints on DM Halos: Population Statistics from Dwarf Galaxies to Galaxy Clusters](https://arxiv.org/abs/2109.02713), MNRAS, (2022)
+D. Anbajagane, A. Evrard, A. Farahi, [Baryonic Imprints on DM Halos: Population Statistics from Dwarf Galaxies to Galaxy Clusters](https://arxiv.org/abs/2109.02713), MNRAS, (2022).
+
+D. Anbajagane et al., [Galaxy Velocity Bias in Cosmological Simulations: Towards Percent-level Calibration](https://arxiv.org/abs/2110.01683), MNRAS, (2022).
+
+A. Nachmann, W. K. Black, [Intra-cluster Summed Galaxy Colors](https://arxiv.org/abs/2112.06867), arXiv preprint, (2021).
+
 
 ## Dependencies
 
@@ -58,7 +63,7 @@ An example for using KLLR looks like this:
         from kllr import kllr_model                                       
                                                                           
         lm = kllr_model(kernel_type = 'gaussian', kernel_width = 0.2)     
-        xrange, yrange_mean, intercept, slope, scatter = lm.fit(x, y, nbins=11)                                   
+        xrange, yrange_mean, intercept, slope, scatter, skew, kurt = lm.fit(x, y, bins=11)                                   
                                                                           
     
 ## Illustration 
