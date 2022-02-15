@@ -1,6 +1,7 @@
 ![GitHub](https://img.shields.io/github/license/afarahi/kllr)
 ![PyPI](https://img.shields.io/pypi/v/kllr)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/kllr)
+<a href="http://ascl.net/2008.003"><img src="https://img.shields.io/badge/ascl-2008.003-blue.svg?colorB=262255" alt="ascl:2008.003" /></a>
 
 <p align="center">
   <img src="logo.png" width="300" title="logo">
