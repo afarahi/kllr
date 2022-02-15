@@ -36,7 +36,7 @@ kwargs = {
     'author_email': 'arya.farahi@austin.utexas.edu',
     'packages': ['KLLR'],
     'url': 'https://github.com/afarahi/kllr',
-    'description': 'Kernel Localized Linear Regression.',
+    'description': 'Kernel Localized Linear Regression, a scale-dependent, multi-variate model class for regression analysis.',
     'long_description': long_description,
     'long_description_content_type':'text/markdown',
     'url':'https://github.com/afarahi/kllr',
