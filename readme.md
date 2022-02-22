@@ -46,7 +46,7 @@ D. Anbajagane et al., [Stellar Property Statistics of Massive Halos from Cosmolo
 
 ## References
 
-[1] A. Farahi, et al. "KLLR: A scale-dependent, multivariate model class for regression analysis." (2022, arXiv: 2202.09903)
+[1]. A. Farahi, et al. "KLLR: A scale-dependent, multivariate model class for regression analysis." (2022, arXiv: 2202.09903)
 
 [2]. A. Farahi, et al. "Localized massive halo properties in BAHAMAS and MACSIS simulations: scalings, lognormality, and covariance." Monthly Notices of the Royal Astronomical Society 478.2 (2018): 2618-2632.
 
