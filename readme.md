@@ -19,15 +19,15 @@ Linear regression of the simple least-squares variety has been a canonical metho
  for the very large samples with non-linear trends.
 
 This code is an implementation of the Kernel Localized Linear Regression (KLLR) method 
-that performs a localized Linear regression described in Farahi et al. (2018). It employs 
+that performs a localized Linear regression described in Farahi et al. (2022). It employs 
 bootstrap re-sampling technique to estimate the uncertainties. We also provide a set of visualization
 tools so practitioners can seamlessly generate visualization of the model parameters.
 
 If you use KLLR or derivates based on it, please cite the following papers which introduced the tool:
 
-[Localized massive halo properties in BAHAMAS and MACSIS simulations: scalings, lognormality, and covariance](https://academic.oup.com/mnras/article-abstract/478/2/2618/4993329).
+[KLLR: A scale-dependent, multivariate model class for regression analysis](https://arxiv.org/abs/2202.09903)
 
-[Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes](https://arxiv.org/abs/2001.02283).
+[Localized massive halo properties in BAHAMAS and MACSIS simulations: scalings, lognormality, and covariance](https://academic.oup.com/mnras/article-abstract/478/2/2618/4993329).
 
 A list of other publications that employed `KLLR` in their data analysis.
 
@@ -37,6 +37,8 @@ D. Anbajagane et al., [Galaxy Velocity Bias in Cosmological Simulations: Towards
 
 A. Nachmann, W. K. Black, [Intra-cluster Summed Galaxy Colors](https://arxiv.org/abs/2112.06867), arXiv preprint, (2021).
 
+D. Anbajagane et al., [Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes](https://arxiv.org/abs/2001.02283), MNRAS, (2020).
+
 
 ## Dependencies
 
@@ -44,9 +46,11 @@ A. Nachmann, W. K. Black, [Intra-cluster Summed Galaxy Colors](https://arxiv.org
 
 ## References
 
-[1]. A. Farahi, et al. "Localized massive halo properties in BAHAMAS and MACSIS simulations: scalings, lognormality, and covariance." Monthly Notices of the Royal Astronomical Society 478.2 (2018): 2618-2632.
+[1] A. Farahi, et al. "KLLR: A scale-dependent, multivariate model class for regression analysis." (2022, arXiv: 2202.09903)
 
-[2]. D. Anbajagane, et al. Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes. No. arXiv: 2001.02283. 2020.
+[2]. A. Farahi, et al. "Localized massive halo properties in BAHAMAS and MACSIS simulations: scalings, lognormality, and covariance." Monthly Notices of the Royal Astronomical Society 478.2 (2018): 2618-2632.
+
+[3]. D. Anbajagane, et al. Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes. No. arXiv: 2001.02283. 2020.
 
 
 ## Acknowledgment
