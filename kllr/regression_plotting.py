@@ -325,7 +325,7 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
 
         if xlog: x_data_show = 10 ** x_data_show
         if ylog: y_data_show = 10 ** y_data_show
-        ax[0].scatter(x_data_show, y_data_show, s=30, alpha=0.3, color=color, label="")
+        ax[0].scatter(x_data_show, y_data_show, s=30, alpha=alpha / 3.5, color=color, label="")
 
     ax[1].plot(x, np.percentile(slope, 50, 0), linestyle=linestyle, lw=3, color=color, alpha = alpha)
     ax[1].fill_between(x, np.percentile(slope, percentile[0], 0), np.percentile(slope, percentile[1], 0),
@@ -542,7 +542,7 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
 
             if xlog: x_data_show = 10 ** x_data_show
             if ylog: y_data_show = 10 ** y_data_show
-            ax[0].scatter(x_data_show, y_data_show, s=30, alpha=0.3, color = color[i], label="", alpha = alpha)
+            ax[0].scatter(x_data_show, y_data_show, s=30, alpha=alpha / 3.5, color = color[i], label="")
 
         ax[1].plot(x, np.percentile(slope, 50, 0), linestyle=linestyle, lw=3, color=color[i], alpha = alpha)
         ax[1].fill_between(x, np.percentile(slope, percentile[0], 0), np.percentile(slope, percentile[1], 0),
