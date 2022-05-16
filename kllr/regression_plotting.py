@@ -190,7 +190,7 @@ def get_params():
 
 
 def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBootstrap=100,
-                     verbose = True, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
+                     verbose = True, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False, linestyle = '-',
                      show_data=False, xlog=False, ylog=False, color=None, labels=None, ax=None):
     '''
 
@@ -303,9 +303,9 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
     if ylog: y = 10 ** y
 
     # Add black line around regular line to improve visibility
-    ax[0].plot(x, np.percentile(y, 50, 0), lw=6, color='k', label="")
+    ax[0].plot(x, np.percentile(y, 50, 0), linestyle=linestyle, lw=6, color='k', label="")
 
-    p = ax[0].plot(x, np.percentile(y, 50, 0), lw=3, color=color)
+    p = ax[0].plot(x, np.percentile(y, 50, 0), linestyle=linestyle, lw=3, color=color)
     color = p[0].get_color()
 
     ax[0].fill_between(x, np.percentile(y, percentile[0], 0), np.percentile(y, percentile[1], 0),
@@ -326,11 +326,11 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
         if ylog: y_data_show = 10 ** y_data_show
         ax[0].scatter(x_data_show, y_data_show, s=30, alpha=0.3, color=color, label="")
 
-    ax[1].plot(x, np.percentile(slope, 50, 0), lw=3, color=color)
+    ax[1].plot(x, np.percentile(slope, 50, 0), linestyle=linestyle, lw=3, color=color)
     ax[1].fill_between(x, np.percentile(slope, percentile[0], 0), np.percentile(slope, percentile[1], 0),
                        alpha=0.4, label=None, color=color)
 
-    ax[2].plot(x, np.percentile(scatter, 50, 0) , lw=3, color=color)
+    ax[2].plot(x, np.percentile(scatter, 50, 0) , linestyle=linestyle, lw=3, color=color)
     ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0), np.percentile(scatter, percentile[1], 0),
                        alpha=0.4, label=None, color=color)
 
@@ -358,7 +358,7 @@ def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBoot
 
 def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split_mode = 'Data', y_err=None, bins=25, xrange=None,
                            nBootstrap=100, verbose = True, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
-                           show_data=False, xlog=False, ylog=False, color=None, labels=None, cmap = None, ax=None):
+                           linestyle = '-', show_data=False, xlog=False, ylog=False, color=None, labels=None, cmap = None, ax=None):
     '''
 
     This function stratifies data on split variable and then visualizes
@@ -525,9 +525,9 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
         if ylog: y = 10 ** y
 
         # Add black line around regular line to improve visibility
-        ax[0].plot(x, np.percentile(y, 50, 0), lw=6, color='k', label="")
+        ax[0].plot(x, np.percentile(y, 50, 0), linestyle=linestyle, lw=6, color='k', label="")
 
-        ax[0].plot(x, np.percentile(y, 50, 0), lw=3, color=color[i], label = label)
+        ax[0].plot(x, np.percentile(y, 50, 0), linestyle=linestyle, lw=3, color=color[i], label = label)
         ax[0].fill_between(x, np.percentile(y, percentile[0], 0), np.percentile(y, percentile[1], 0),
                            lw=3, color=color[i], alpha = 0.4)
 
@@ -542,11 +542,11 @@ def Plot_Fit_Summary_Split(df, xlabel, ylabel, split_label, split_bins=[], split
             if ylog: y_data_show = 10 ** y_data_show
             ax[0].scatter(x_data_show, y_data_show, s=30, alpha=0.3, color = color[i], label="")
 
-        ax[1].plot(x, np.percentile(slope, 50, 0), lw=3, color=color[i])
+        ax[1].plot(x, np.percentile(slope, 50, 0), linestyle=linestyle, lw=3, color=color[i])
         ax[1].fill_between(x, np.percentile(slope, percentile[0], 0), np.percentile(slope, percentile[1], 0),
                            alpha=0.4, label=None, color=color[i])
 
-        ax[2].plot(x, np.percentile(scatter, 50, 0), lw=3, color=color[i])
+        ax[2].plot(x, np.percentile(scatter, 50, 0), linestyle=linestyle, lw=3, color=color[i])
         ax[2].fill_between(x, np.percentile(scatter, percentile[0], 0), np.percentile(scatter, percentile[1], 0),
                            alpha=0.4, label=None, color=color[i])
 
