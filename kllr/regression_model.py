@@ -742,15 +742,10 @@ class kllr_model():
 
             if fast_calc:
 
+                #If we want a fast calculation, only use data that is within 3sigma of X[i]
                 Mask = (X[:, 0] > xline[i] - kernel_width[i]*3) & (X[:, 0] < xline[i] + kernel_width[i]*3)
-                X_small, y_small = X[Mask, :], y[Mask]
 
-                if y_err is None:
-                    y_err_small = None
-                elif isinstance(y_err, np.ndarray):
-                    y_err_small = y_err[Mask]
-
-                if X_small.size == 0:
+                if Mask.sum() == 0:
 
                     raise ValueError("Attempting regression using 0 objects at x = %0.2f. To correct this\n"%xline[i] + \
                                      "you can (i) set fast_calc = False, (ii) increase kernel width, or;\n" + \
@@ -758,29 +753,35 @@ class kllr_model():
 
             else:
 
-                X_small, y_small, y_err_small = X, y, y_err
+                #If we dont need fast calc, use all data points
+                Mask = np.ones(y.size).astype(bool)
 
-            # Generate weights at sample point
-            w = calculate_weights(X_small[:, 0], kernel_type = kernel_type, mu = xline[i], width = kernel_width[i])
+            # Generate weights at sample point i
+            w = calculate_weights(X[:, 0], kernel_type = kernel_type, mu = xline[i], width = kernel_width[i])
 
             for j in range(nBootstrap):
 
-                #First "bootstrap" is always using unsampled data
+                #First "bootstrap" is always using unsampled/shuffled data
                 if j == 0:
-                    rand_ind = np.ones(y_small.size).astype(bool)
+                    rand_ind = Mask
+
+                #Seed bootstraps sampling with bootstrap number j
+                #Ensures subsampling in iteration j is same
+                #for all sampling points i. Results in smoothness
+                #in each bootstrap fit
                 else:
-                    rand_ind = np.random.randint(0, y_small.size, y_small.size)
+                    rand_ind = np.random.default_rng(seed = j).integers(0, y.size, y.size)
+                    rand_ind = rand_ind[Mask[rand_ind]] #Only select bootstrap points with Mask==True
 
                 #Edge case handling I:
                 #If y_err is a None, then we can't index it
-                if y_err_small is None:
-                    y_err_small_in = None
-                elif isinstance(y_err_small, np.ndarray):
-                    y_err_small_in = y_err_small[rand_ind]
+                if y_err is None:
+                    y_err_tmp = None
+                elif isinstance(y_err, np.ndarray):
+                    y_err_tmp = y_err[rand_ind]
 
                 # Compute fit params using linear regressions
-                output = self.linear_regression(X_small[rand_ind], y_small[rand_ind],
-                                                y_err_small_in, w[rand_ind],
+                output = self.linear_regression(X[rand_ind], y[rand_ind], y_err_tmp, w[rand_ind],
                                                 compute_skewness, compute_kurtosis)
 
                 intercept[j, i] = output[0]
