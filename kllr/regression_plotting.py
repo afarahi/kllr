@@ -190,7 +190,7 @@ def get_params():
 
 
 def Plot_Fit_Summary(df, xlabel, ylabel, y_err=None, bins=25, xrange=None, nBootstrap=100,
-                     verbose = True, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False, 
+                     verbose = True, percentile=[16., 84.], kernel_type='gaussian', kernel_width=0.2, fast_calc = False,
                      linestyle = '-', alpha=1.0, black_line = True,
                      show_data=False, xlog=False, ylog=False, color=None, labels=None, ax=None):
     '''
@@ -1261,7 +1261,7 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
                 ax_tmp = ax
 
             x_data, y_data, z_data, split_data = df[xlabel].to_numpy(), df[ylabel].to_numpy(), df[zlabel].to_numpy(), df[split_label].to_numpy()
-            Mask = clean_vector(x_data) & clean_vector(y_data) & clean_vector(z_data)
+            Mask = clean_vector(x_data) & clean_vector(y_data) & clean_vector(z_data) & clean_vector(split_data)
             x_data, y_data, z_data, split_data = x_data[Mask], y_data[Mask], z_data[Mask], split_data[Mask]
 
             # Check if y_err is provided and load it
