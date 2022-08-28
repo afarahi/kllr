@@ -1281,14 +1281,14 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
 
             # Choose bin edges for binning data
             if (isinstance(split_bins, int)):
-                if split_mode == 'Data':
+                if split_mode.lower() == 'data':
                     split_bins = [np.percentile(split_data, float(i / split_bins) * 100) for i in
                                   range(0, split_bins + 1)]
-                elif split_mode == 'Residuals':
+                elif split_mode.lower() == 'residuals':
                     split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
                     split_bins = [np.percentile(split_res, float(i / split_bins) * 100) for i in
                                   range(0, split_bins + 1)]
-            elif isinstance(split_bins, (np.ndarray, list, tuple)) & (split_mode == 'Residuals'):
+            elif isinstance(split_bins, (np.ndarray, list, tuple)) & (split_mode.lower() == 'residuals'):
                 split_res = lm.residuals(x_data, split_data, xrange=None, bins = bins, nBootstrap = 1)
 
             # Define Output_Data variable to store all computed data that is then plotted
@@ -1296,9 +1296,9 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
 
             for k in range(len(split_bins) - 1):
 
-                if split_mode == 'Data':
+                if split_mode.lower() == 'data':
                     split_Mask = (split_data <= split_bins[k + 1]) & (split_data > split_bins[k])
-                elif split_mode == 'Residuals':
+                elif split_mode.lower() == 'residuals':
                     split_Mask = (split_res <= split_bins[k + 1]) & (split_res > split_bins[k])
 
                 # Edge case for y_err
@@ -1321,9 +1321,9 @@ def Plot_Cov_Corr_Matrix_Split(df, xlabel, ylabels, split_label, split_bins=[], 
 
                 if nBootstrap == 1: cov_corr = cov_corr[None, :]
 
-                if split_mode == 'Data':
+                if split_mode.lower() == 'data':
                     label = r'$%0.2f <$ %s $< %0.2f$' % (split_bins[k], labels[-1], split_bins[k + 1])
-                elif split_mode == 'Residuals':
+                elif split_mode.lower() == 'residuals':
                     label = r'$%0.2f < {\rm res}($%s$) < %0.2f$' % (split_bins[k], labels[-1], split_bins[k + 1])
 
                 if xlog:
