@@ -31,13 +31,18 @@ If you use KLLR or derivates based on it, please cite the following papers which
 
 A list of other publications that employed `KLLR` in their data analysis.
 
-D. Anbajagane, A. Evrard, A. Farahi, [Baryonic Imprints on DM Halos: Population Statistics from Dwarf Galaxies to Galaxy Clusters](https://arxiv.org/abs/2109.02713), MNRAS, (2022).
 
-D. Anbajagane et al., [Galaxy Velocity Bias in Cosmological Simulations: Towards Percent-level Calibration](https://arxiv.org/abs/2110.01683), MNRAS, (2022).
+Wu et al., [Optical selection bias and projection effects in stacked galaxy cluster weak lensing](https://academic.oup.com/mnras/article/515/3/4471/6648841), MNRAS (2022). 
 
-A. Nachmann, W. K. Black, [Intra-cluster Summed Galaxy Colors](https://arxiv.org/abs/2112.06867), arXiv preprint, (2021).
+W. K. Black, A. E. Evrard, [Red Dragon: a redshift-evolving Gaussian mixture model for galaxies](https://academic.oup.com/mnras/article/516/1/1170/6648849), MNRAS (2022).
 
-D. Anbajagane et al., [Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes](https://arxiv.org/abs/2001.02283), MNRAS, (2020).
+D. Anbajagane, A. Evrard, A. Farahi, [Baryonic Imprints on DM Halos: Population Statistics from Dwarf Galaxies to Galaxy Clusters](https://arxiv.org/abs/2109.02713), MNRAS (2022).
+
+D. Anbajagane et al., [Galaxy Velocity Bias in Cosmological Simulations: Towards Percent-level Calibration](https://arxiv.org/abs/2110.01683), MNRAS (2022).
+
+A. Nachmann, W. K. Black, [Intra-cluster Summed Galaxy Colors](https://arxiv.org/abs/2112.06867), arXiv preprint (2021).
+
+D. Anbajagane et al., [Stellar Property Statistics of Massive Halos from Cosmological Hydrodynamics Simulations: Common Kernel Shapes](https://arxiv.org/abs/2001.02283), MNRAS (2020).
 
 
 ## Dependencies
