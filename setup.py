@@ -45,7 +45,7 @@ kwargs = {
     'url':'https://github.com/afarahi/kllr',
     'license': 'MIT',
     'keywords': ['linear', 'regression', 'astronomy', 'astrophysics', 'parameter estimation'],
-    'install_requires': ['numpy', 'scipy', 'matplotlib', 'pandas', 'sklearn', 'tqdm'],
+    'install_requires': ['numpy', 'scipy', 'matplotlib', 'pandas', 'scikit-learn', 'tqdm'],
     'packages': find_packages(),
     'test_suite': 'tests',
     'python_modules': 'kllr',
